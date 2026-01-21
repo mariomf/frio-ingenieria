@@ -1,11 +1,14 @@
 // src/app/test-db/page.tsx
 import { supabase } from '@/lib/supabase'
+import { Brand } from '@/types/database'
 
 export default async function TestConnection() {
   // Intentamos obtener los registros de la tabla 'brands'
-  const { data: brands, error } = await supabase
+  const { data, error } = await supabase
     .from('brands')
     .select('*')
+
+  const brands = data as Brand[] | null //
 
   if (error) {
     return (
@@ -21,7 +24,9 @@ export default async function TestConnection() {
       <h1 className="text-green-600 font-bold text-2xl mb-4">
         ¡Conexión Exitosa!
       </h1>
-      <p className="mb-4">{'Se encontraron ' + brands?.length + " registros en la tabla 'brands':"}</p>
+      <p className="mb-4">
+        Se encontraron {brands?.length || 0} registros en la tabla &apos;brands&apos;:
+      </p>
       <ul className="list-disc pl-5">
         {brands?.map((brand) => (
           <li key={brand.id}>
