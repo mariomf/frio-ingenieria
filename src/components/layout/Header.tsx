@@ -11,17 +11,20 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
+    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/95">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-heading font-bold text-xl">
-            FI
+          <div className="flex h-14 w-50 items-center justify-center rounded-lg bg-[#ffffff] text-white font-heading font-bold text-xl">
+            <img
+              src="https://static.wixstatic.com/media/4141ae_505e58d5279d2641ae59c23fced767d8.gif"
+              className="w-full h-full object-cover"
+            />
           </div>
-          <div className="hidden sm:block">
+          {/*<div className="hidden sm:block">
             <div className="font-heading font-bold text-lg text-primary-900">Frío Ingeniería</div>
             <div className="text-xs text-industrial-500">Refrigeración Industrial</div>
-          </div>
+          </div>*/}
         </Link>
 
         {/* Desktop Navigation */}

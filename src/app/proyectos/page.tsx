@@ -3,13 +3,17 @@ import Link from 'next/link'
 import { Filter } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { INDUSTRIES, APPLICATIONS, REFRIGERANTS, CAPACITIES } from '@/lib/constants'
+import { getAllProjects } from '@/lib/services/projectService'
+import { ProjectCard } from '@/components/projects/ProjectCard'
 
 export const metadata: Metadata = {
   title: 'Proyectos',
   description: 'Explora nuestros proyectos de refrigeración industrial. Cuartos fríos, túneles de congelación, chillers y más para la industria alimentaria.',
 }
 
-export default function ProyectosPage() {
+export default async function ProyectosPage() {
+  // Obtener proyectos reales de Supabase
+  const projects = await getAllProjects()
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -75,47 +79,31 @@ export default function ProyectosPage() {
       {/* Projects Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Placeholder cards - will be replaced with actual data */}
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="group bg-white rounded-xl overflow-hidden border border-industrial-200 hover:shadow-lg transition-shadow"
-              >
-                <div className="aspect-video bg-industrial-200" />
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded">
-                      Lácteos
-                    </span>
-                    <span className="px-2 py-1 bg-industrial-100 text-industrial-700 text-xs font-medium rounded">
-                      Cuarto Frío
-                    </span>
-                  </div>
-                  <h3 className="font-heading font-semibold text-lg mb-2 text-industrial-900 group-hover:text-primary-600 transition-colors">
-                    Proyecto de Ejemplo {i}
-                  </h3>
-                  <p className="text-industrial-600 text-sm mb-4">
-                    Ciudad de México, 2024
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-industrial-500">150 TR • NH3</span>
-                    <Link
-                      href={`/proyectos/proyecto-${i}`}
-                      className="text-primary-600 text-sm font-medium hover:text-primary-700"
-                    >
-                      Ver más →
-                    </Link>
-                  </div>
-                </div>
+          {projects && projects.length > 0 ? (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Load More */}
-          <div className="text-center mt-12">
-            <Button variant="outline">Cargar más proyectos</Button>
-          </div>
+              {/* Load More - Opcional: implementar paginación en futuras iteraciones */}
+              {projects.length >= 6 && (
+                <div className="text-center mt-12">
+                  <Button variant="outline">Cargar más proyectos</Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-industrial-600 mb-4">
+                No hay proyectos disponibles en este momento
+              </p>
+              <p className="text-industrial-500 text-sm">
+                Estamos trabajando en actualizar nuestro portafolio
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

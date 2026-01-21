@@ -10,13 +10,24 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="relative min-h-[80vh] flex items-center justify-center bg-industrial-900">
-        {/* Background overlay - replace with video later */}
+        {/* Background overlay - replace with video later 
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/images/hero-bg.jpg')",
+            backgroundImage: "url('/images/hero-bg.png')",
           }}
-        >
+        >*/}
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 h-full w-full object-cover"
+          >
+            <source src="/videos/hero-video.mp4" type="video/mp4" />
+            Tu navegador no soporta videos.
+          </video>
           <div className="absolute inset-0 bg-industrial-900/70" />
         </div>
 

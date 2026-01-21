@@ -1,15 +1,20 @@
 import { Metadata } from 'next'
-import Link from 'next/link'
 import { Search, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { BRANDS } from '@/lib/constants'
+import { getAllBrands } from '@/lib/services/brandService'
+import { getPartsWithBrand } from '@/lib/services/partService'
+import { BrandCard } from '@/components/parts/BrandCard'
+import { PartCard } from '@/components/parts/PartCard'
 
 export const metadata: Metadata = {
   title: 'Refacciones',
   description: 'Catálogo de refacciones originales para refrigeración industrial. Distribución directa MYCOM y YORK-FRICK. Cotización rápida.',
 }
 
-export default function RefaccionesPage() {
+export default async function RefaccionesPage() {
+  // Obtener datos reales de Supabase
+  const brands = await getAllBrands()
+  const partsWithBrand = await getPartsWithBrand(8) // Limitar a 8 refacciones destacadas
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -46,24 +51,13 @@ export default function RefaccionesPage() {
             Navegar por Marca
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {BRANDS.map((brand) => (
-              <Link
-                key={brand.slug}
-                href={`/refacciones?marca=${brand.slug}`}
-                className="group p-6 border border-industrial-200 rounded-xl hover:border-primary-500 hover:shadow-md transition-all text-center"
-              >
-                <div className="h-12 flex items-center justify-center mb-3">
-                  <span className="font-heading font-bold text-xl text-industrial-700 group-hover:text-primary-600">
-                    {brand.name}
-                  </span>
-                </div>
-                {brand.isDirectDistributor && (
-                  <span className="inline-block px-2 py-1 bg-accent-100 text-accent-700 text-xs font-medium rounded">
-                    Distribución directa
-                  </span>
-                )}
-              </Link>
-            ))}
+            {brands && brands.length > 0 ? (
+              brands.map((brand) => <BrandCard key={brand.id} brand={brand} />)
+            ) : (
+              <div className="col-span-4 text-center py-8 text-industrial-600">
+                No se encontraron marcas disponibles
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -82,32 +76,24 @@ export default function RefaccionesPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* Placeholder cards */}
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl border border-industrial-200 overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                <div className="aspect-square bg-industrial-100 flex items-center justify-center">
-                  <span className="text-industrial-400">Imagen</span>
-                </div>
-                <div className="p-4">
-                  <div className="text-xs text-industrial-500 mb-1">YORK-FRICK</div>
-                  <h3 className="font-semibold text-industrial-900 mb-1">2519-603{i}</h3>
-                  <p className="text-sm text-industrial-600 mb-3 line-clamp-2">
-                    Filtro de aceite para compresor tornillo Frick RWB II
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">
-                      En stock
-                    </span>
-                    <Button size="sm" variant="outline">
-                      Agregar
-                    </Button>
-                  </div>
-                </div>
+            {partsWithBrand && partsWithBrand.length > 0 ? (
+              partsWithBrand.map((part) => (
+                <PartCard
+                  key={part.id}
+                  part={part}
+                  brand={part.brands}
+                />
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-12">
+                <p className="text-industrial-600 mb-4">
+                  No hay refacciones disponibles en este momento
+                </p>
+                <p className="text-industrial-500 text-sm">
+                  Contacta con nosotros para obtener la refacción que necesitas
+                </p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>

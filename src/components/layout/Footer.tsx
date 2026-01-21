@@ -12,13 +12,18 @@ export function Footer() {
           {/* Company Info */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white font-heading font-bold text-xl">
-                FI
+              
+              <div className="flex h-14 w-50 items-center justify-center rounded-lg bg-[#ffffff] text-white font-heading font-bold text-xl">
+                <img
+                  src="https://static.wixstatic.com/media/4141ae_505e58d5279d2641ae59c23fced767d8.gif"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div>
+              
+              {/*<div>
                 <div className="font-heading font-bold text-lg">{COMPANY.name}</div>
                 <div className="text-xs text-industrial-400">Refrigeración Industrial</div>
-              </div>
+              </div>*/}
             </div>
             <p className="text-industrial-300 text-sm mb-4">
               {COMPANY.yearsExperience} años diseñando sistemas de refrigeración industrial para la industria alimentaria en México.
