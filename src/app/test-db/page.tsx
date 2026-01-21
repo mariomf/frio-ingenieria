@@ -21,7 +21,7 @@ export default async function TestConnection() {
       <h1 className="text-green-600 font-bold text-2xl mb-4">
         ¡Conexión Exitosa!
       </h1>
-      <p className="mb-4">Se encontraron {brands?.length} registros en la tabla 'brands':</p>
+      <p className="mb-4">{'Se encontraron ' + brands?.length + " registros en la tabla 'brands':"}</p>
       <ul className="list-disc pl-5">
         {brands?.map((brand) => (
           <li key={brand.id}>
