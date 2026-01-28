@@ -4,9 +4,9 @@ export const COMPANY = {
   tagline: 'Refrigeración Industrial que Funciona',
   yearsExperience: 34,
   foundedYear: 1991,
-  phone: '+52 1 55 1234 5678', // Replace with actual phone
+  phone: '+52 33 14 53 67 27', // Replace with actual phone
   emergencyPhone: '+52 1 55 1234 5678', // Replace with actual emergency phone
-  email: 'contacto@frioingenieriamx.com',
+  email: 'almucino@frioingenieria.com',
   address: 'Ciudad de México, México',
   website: 'https://frioingenieriamx.com',
 }
