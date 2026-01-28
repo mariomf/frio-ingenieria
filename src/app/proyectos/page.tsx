@@ -7,8 +7,33 @@ import { getAllProjects } from '@/lib/services/projectService'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 
 export const metadata: Metadata = {
-  title: 'Proyectos',
-  description: 'Explora nuestros proyectos de refrigeración industrial. Cuartos fríos, túneles de congelación, chillers y más para la industria alimentaria.',
+  title: 'Proyectos de Refrigeración Industrial | Cuartos Fríos y Túneles de Congelación',
+  description: 'Portafolio de proyectos de refrigeración industrial realizados en México. Cuartos fríos, túneles de congelación IQF, chillers industriales y sistemas de amoniaco para industria alimentaria, cárnica, pesquera y agroindustrial. 34 años de experiencia.',
+  keywords: [
+    'proyectos refrigeración industrial',
+    'proyectos cuartos fríos',
+    'instalación túneles congelación',
+    'proyectos chillers industriales',
+    'refrigeración industria alimentaria',
+    'refrigeración industria cárnica',
+    'refrigeración industria pesquera',
+    'proyectos llave en mano refrigeración',
+    'instalación sistemas amoniaco',
+    'casos de éxito refrigeración',
+    'portafolio refrigeración industrial',
+    'proyectos IQF México',
+    'blast freezer México',
+    'cámaras frigoríficas proyectos',
+  ],
+  openGraph: {
+    title: 'Proyectos de Refrigeración Industrial | Frío Ingeniería',
+    description: 'Conoce nuestros proyectos de cuartos fríos, túneles de congelación y sistemas industriales. 34 años de experiencia en México.',
+    url: 'https://frioingenieriamx.com/proyectos',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/proyectos',
+  },
 }
 
 export default async function ProyectosPage() {

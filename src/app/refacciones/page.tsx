@@ -7,8 +7,34 @@ import { BrandCard } from '@/components/parts/BrandCard'
 import { PartCard } from '@/components/parts/PartCard'
 
 export const metadata: Metadata = {
-  title: 'Refacciones',
-  description: 'Catálogo de refacciones originales para refrigeración industrial. Distribución directa MYCOM y YORK-FRICK. Cotización rápida.',
+  title: 'Refacciones para Refrigeración Industrial | MYCOM y YORK-FRICK',
+  description: 'Catálogo de refacciones originales para compresores y equipos de refrigeración industrial. Distribuidor autorizado MYCOM y YORK-FRICK en México. Válvulas, filtros, empaques, aceites y más. Cotización en menos de 4 horas.',
+  keywords: [
+    'refacciones refrigeración industrial',
+    'refacciones MYCOM',
+    'refacciones YORK-FRICK',
+    'refacciones compresores amoniaco',
+    'repuestos refrigeración industrial',
+    'partes compresores industriales',
+    'válvulas refrigeración',
+    'filtros refrigeración industrial',
+    'aceite compresores refrigeración',
+    'empaques compresores MYCOM',
+    'distribuidor MYCOM México',
+    'distribuidor YORK-FRICK México',
+    'refacciones originales refrigeración',
+    'comprar refacciones refrigeración',
+    'cotización refacciones refrigeración',
+  ],
+  openGraph: {
+    title: 'Refacciones MYCOM y YORK-FRICK | Frío Ingeniería',
+    description: 'Distribuidor autorizado de refacciones originales para refrigeración industrial. Cotización rápida en México.',
+    url: 'https://frioingenieriamx.com/refacciones',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/refacciones',
+  },
 }
 
 export default async function RefaccionesPage() {

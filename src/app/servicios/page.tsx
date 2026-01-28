@@ -4,8 +4,33 @@ import { Wrench, Search, GraduationCap, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 export const metadata: Metadata = {
-  title: 'Servicios',
-  description: 'Servicios de mantenimiento, diagnóstico y capacitación para sistemas de refrigeración industrial. Atención 24/7.',
+  title: 'Servicios de Mantenimiento y Diagnóstico de Refrigeración Industrial',
+  description: 'Servicios especializados de mantenimiento preventivo y correctivo, diagnóstico energético y capacitación para sistemas de refrigeración industrial. Atención de emergencias 24/7. Expertos en compresores MYCOM, YORK-FRICK y sistemas de amoniaco en México.',
+  keywords: [
+    'mantenimiento refrigeración industrial',
+    'servicio refrigeración industrial',
+    'mantenimiento cuartos fríos',
+    'reparación sistemas refrigeración',
+    'diagnóstico refrigeración',
+    'auditoría energética refrigeración',
+    'capacitación refrigeración industrial',
+    'servicio 24 horas refrigeración',
+    'emergencias refrigeración',
+    'mantenimiento compresores amoniaco',
+    'servicio MYCOM',
+    'servicio YORK-FRICK',
+    'detección fugas amoniaco',
+    'mantenimiento preventivo cuartos fríos',
+  ],
+  openGraph: {
+    title: 'Servicios de Refrigeración Industrial | Frío Ingeniería',
+    description: 'Mantenimiento, diagnóstico y capacitación para sistemas de refrigeración industrial. Servicio 24/7 en México.',
+    url: 'https://frioingenieriamx.com/servicios',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/servicios',
+  },
 }
 
 export default function ServiciosPage() {

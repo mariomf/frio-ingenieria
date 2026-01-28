@@ -5,8 +5,30 @@ import { COMPANY, WHATSAPP } from '@/lib/constants'
 import { generateWhatsAppLink } from '@/lib/utils'
 
 export const metadata: Metadata = {
-  title: 'Contacto',
-  description: 'Contáctanos para cotizar tu proyecto de refrigeración industrial o solicitar refacciones. Respuesta en menos de 4 horas.',
+  title: 'Contacto | Cotiza tu Proyecto de Refrigeración Industrial',
+  description: 'Contacta a Frío Ingeniería para cotizar cuartos fríos, túneles de congelación, chillers o refacciones. Respuesta en menos de 4 horas. Atención de emergencias 24/7 en México. WhatsApp disponible.',
+  keywords: [
+    'contacto refrigeración industrial',
+    'cotización cuartos fríos',
+    'cotización refrigeración industrial',
+    'contacto Frío Ingeniería',
+    'teléfono refrigeración industrial México',
+    'emergencias refrigeración 24 horas',
+    'WhatsApp refrigeración industrial',
+    'solicitar cotización refrigeración',
+    'presupuesto cuartos fríos',
+    'asesoría refrigeración industrial',
+    'consulta refrigeración industrial',
+  ],
+  openGraph: {
+    title: 'Contacta a Frío Ingeniería | Refrigeración Industrial',
+    description: 'Solicita cotización de cuartos fríos, túneles de congelación y refacciones. Respuesta en menos de 4 horas.',
+    url: 'https://frioingenieriamx.com/contacto',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/contacto',
+  },
 }
 
 export default function ContactoPage() {

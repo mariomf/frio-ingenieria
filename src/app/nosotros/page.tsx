@@ -3,8 +3,31 @@ import { Award, Users, Shield, Target } from 'lucide-react'
 import { COMPANY, FEATURED_CLIENTS } from '@/lib/constants'
 
 export const metadata: Metadata = {
-  title: 'Nosotros',
-  description: `Conoce a Frío Ingeniería. ${COMPANY.yearsExperience} años de experiencia en refrigeración industrial para la industria alimentaria en México.`,
+  title: 'Sobre Nosotros | Empresa de Refrigeración Industrial en México',
+  description: `Frío Ingeniería: ${COMPANY.yearsExperience} años de experiencia en refrigeración industrial. Empresa mexicana especializada en cuartos fríos, túneles de congelación y sistemas de amoniaco. Distribuidor autorizado MYCOM y YORK-FRICK. Atendemos industria alimentaria, cárnica, pesquera y agroindustrial.`,
+  keywords: [
+    'empresa refrigeración industrial México',
+    'Frío Ingeniería',
+    'frioingenieria',
+    'compañía refrigeración industrial',
+    'especialistas refrigeración industrial',
+    'distribuidor MYCOM México',
+    'distribuidor YORK-FRICK México',
+    'refrigeración industrial 34 años experiencia',
+    'expertos cuartos fríos México',
+    'empresa túneles congelación',
+    'refrigeración industria alimentaria México',
+    'quiénes somos Frío Ingeniería',
+  ],
+  openGraph: {
+    title: 'Sobre Frío Ingeniería | Refrigeración Industrial',
+    description: `${COMPANY.yearsExperience} años diseñando soluciones de refrigeración industrial en México. Distribuidor autorizado MYCOM y YORK-FRICK.`,
+    url: 'https://frioingenieriamx.com/nosotros',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/nosotros',
+  },
 }
 
 export default function NosotrosPage() {

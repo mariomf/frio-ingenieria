@@ -3,8 +3,31 @@ import Link from 'next/link'
 import { FileText, BookOpen, Download } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Recursos',
-  description: 'Blog, guías técnicas y documentación sobre refrigeración industrial. Aprende de los expertos.',
+  title: 'Recursos y Blog de Refrigeración Industrial | Guías Técnicas',
+  description: 'Centro de recursos sobre refrigeración industrial. Blog con artículos técnicos, guías de mantenimiento, manuales de operación y documentación de equipos MYCOM y YORK-FRICK. Aprende de expertos con 34 años de experiencia.',
+  keywords: [
+    'blog refrigeración industrial',
+    'guías refrigeración industrial',
+    'artículos refrigeración',
+    'manuales refrigeración industrial',
+    'documentación técnica refrigeración',
+    'tutoriales cuartos fríos',
+    'mantenimiento refrigeración guía',
+    'fichas técnicas MYCOM',
+    'fichas técnicas YORK-FRICK',
+    'capacitación refrigeración industrial',
+    'recursos refrigeración',
+    'información técnica refrigeración',
+  ],
+  openGraph: {
+    title: 'Recursos de Refrigeración Industrial | Frío Ingeniería',
+    description: 'Blog, guías técnicas y documentación sobre refrigeración industrial. Aprende de los expertos.',
+    url: 'https://frioingenieriamx.com/recursos',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://frioingenieriamx.com/recursos',
+  },
 }
 
 export default function RecursosPage() {
