@@ -28,11 +28,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Proyectos de Refrigeración Industrial | Frío Ingeniería',
     description: 'Conoce nuestros proyectos de cuartos fríos, túneles de congelación y sistemas industriales. 34 años de experiencia en México.',
-    url: 'https://frioingenieriamx.com/proyectos',
+    url: 'https://frio-ingenieria.vercel.app/proyectos',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/proyectos',
+    canonical: 'https://frio-ingenieria.vercel.app/proyectos',
   },
 }
 

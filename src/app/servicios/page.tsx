@@ -25,11 +25,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Servicios de Refrigeración Industrial | Frío Ingeniería',
     description: 'Mantenimiento, diagnóstico y capacitación para sistemas de refrigeración industrial. Servicio 24/7 en México.',
-    url: 'https://frioingenieriamx.com/servicios',
+    url: 'https://frio-ingenieria.vercel.app/servicios',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/servicios',
+    canonical: 'https://frio-ingenieria.vercel.app/servicios',
   },
 }
 

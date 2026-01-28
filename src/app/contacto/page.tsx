@@ -23,11 +23,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contacta a Frío Ingeniería | Refrigeración Industrial',
     description: 'Solicita cotización de cuartos fríos, túneles de congelación y refacciones. Respuesta en menos de 4 horas.',
-    url: 'https://frioingenieriamx.com/contacto',
+    url: 'https://frio-ingenieria.vercel.app/contacto',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/contacto',
+    canonical: 'https://frio-ingenieria.vercel.app/contacto',
   },
 }
 

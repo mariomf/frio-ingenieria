@@ -22,11 +22,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Recursos de Refrigeración Industrial | Frío Ingeniería',
     description: 'Blog, guías técnicas y documentación sobre refrigeración industrial. Aprende de los expertos.',
-    url: 'https://frioingenieriamx.com/recursos',
+    url: 'https://frio-ingenieria.vercel.app/recursos',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/recursos',
+    canonical: 'https://frio-ingenieria.vercel.app/recursos',
   },
 }
 

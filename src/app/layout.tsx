@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://frioingenieriamx.com'),
+  metadataBase: new URL('https://frio-ingenieria.vercel.app'),
   title: {
     default: 'Frío Ingeniería | Refrigeración Industrial en México | Cuartos Fríos y Túneles de Congelación',
     template: '%s | Frío Ingeniería - Refrigeración Industrial',
@@ -92,7 +92,7 @@ export const metadata: Metadata = {
     'pre-enfriamiento',
     'cadena de frío',
   ],
-  authors: [{ name: 'Frío Ingeniería', url: 'https://frioingenieriamx.com' }],
+  authors: [{ name: 'Frío Ingeniería', url: 'https://frio-ingenieria.vercel.app' }],
   creator: 'Frío Ingeniería',
   publisher: 'Frío Ingeniería',
   formatDetection: {
@@ -124,7 +124,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_MX',
-    url: 'https://frioingenieriamx.com',
+    url: 'https://frio-ingenieria.vercel.app',
     siteName: 'Frío Ingeniería',
     title: 'Frío Ingeniería | Refrigeración Industrial en México',
     description: '34 años de experiencia en refrigeración industrial. Cuartos fríos, túneles de congelación, chillers y sistemas de amoniaco. Distribuidor autorizado MYCOM y YORK-FRICK.',
@@ -158,9 +158,9 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com',
+    canonical: 'https://frio-ingenieria.vercel.app',
     languages: {
-      'es-MX': 'https://frioingenieriamx.com',
+      'es-MX': 'https://frio-ingenieria.vercel.app',
     },
   },
   category: 'technology',
@@ -180,17 +180,17 @@ const jsonLd = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://frioingenieriamx.com/#organization',
+      '@id': 'https://frio-ingenieria.vercel.app/#organization',
       name: 'Frío Ingeniería',
       alternateName: ['FrioIngenieria', 'Frio Ingenieria', 'Frío Ingeniería MX'],
-      url: 'https://frioingenieriamx.com',
+      url: 'https://frio-ingenieria.vercel.app',
       logo: {
         '@type': 'ImageObject',
         url: 'https://static.wixstatic.com/media/4141ae_9b330c8981d48b7ba63168704ff35071_fi.gif',
         width: 192,
         height: 192,
       },
-      image: 'https://frioingenieriamx.com/images/og-image.jpg',
+      image: 'https://frio-ingenieria.vercel.app/images/og-image.jpg',
       description: 'Empresa mexicana con 34 años de experiencia en refrigeración industrial. Especialistas en cuartos fríos, túneles de congelación, chillers y sistemas de amoniaco.',
       foundingDate: '1990',
       address: {
@@ -278,19 +278,19 @@ const jsonLd = {
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://frioingenieriamx.com/#website',
-      url: 'https://frioingenieriamx.com',
+      '@id': 'https://frio-ingenieria.vercel.app/#website',
+      url: 'https://frio-ingenieria.vercel.app',
       name: 'Frío Ingeniería',
       description: 'Refrigeración Industrial en México - Cuartos Fríos, Túneles de Congelación, Chillers',
       publisher: {
-        '@id': 'https://frioingenieriamx.com/#organization',
+        '@id': 'https://frio-ingenieria.vercel.app/#organization',
       },
       potentialAction: [
         {
           '@type': 'SearchAction',
           target: {
             '@type': 'EntryPoint',
-            urlTemplate: 'https://frioingenieriamx.com/buscar?q={search_term_string}',
+            urlTemplate: 'https://frio-ingenieria.vercel.app/buscar?q={search_term_string}',
           },
           'query-input': 'required name=search_term_string',
         },
@@ -299,11 +299,11 @@ const jsonLd = {
     },
     {
       '@type': 'LocalBusiness',
-      '@id': 'https://frioingenieriamx.com/#localbusiness',
+      '@id': 'https://frio-ingenieria.vercel.app/#localbusiness',
       name: 'Frío Ingeniería',
-      image: 'https://frioingenieriamx.com/images/og-image.jpg',
+      image: 'https://frio-ingenieria.vercel.app/images/og-image.jpg',
       description: 'Especialistas en refrigeración industrial con 34 años de experiencia. Cuartos fríos, túneles de congelación, chillers y sistemas de amoniaco.',
-      url: 'https://frioingenieriamx.com',
+      url: 'https://frio-ingenieria.vercel.app',
       telephone: '+52-55-1234-5678',
       priceRange: '$$$',
       address: {

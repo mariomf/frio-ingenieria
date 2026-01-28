@@ -29,11 +29,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Refacciones MYCOM y YORK-FRICK | Frío Ingeniería',
     description: 'Distribuidor autorizado de refacciones originales para refrigeración industrial. Cotización rápida en México.',
-    url: 'https://frioingenieriamx.com/refacciones',
+    url: 'https://frio-ingenieria.vercel.app/refacciones',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/refacciones',
+    canonical: 'https://frio-ingenieria.vercel.app/refacciones',
   },
 }
 

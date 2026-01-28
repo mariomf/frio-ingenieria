@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://frioingenieriamx.com'
+  const baseUrl = 'https://frio-ingenieria.vercel.app'
   const currentDate = new Date().toISOString()
 
   // Páginas estáticas principales

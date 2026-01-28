@@ -22,11 +22,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sobre Frío Ingeniería | Refrigeración Industrial',
     description: `${COMPANY.yearsExperience} años diseñando soluciones de refrigeración industrial en México. Distribuidor autorizado MYCOM y YORK-FRICK.`,
-    url: 'https://frioingenieriamx.com/nosotros',
+    url: 'https://frio-ingenieria.vercel.app/nosotros',
     type: 'website',
   },
   alternates: {
-    canonical: 'https://frioingenieriamx.com/nosotros',
+    canonical: 'https://frio-ingenieria.vercel.app/nosotros',
   },
 }
 
