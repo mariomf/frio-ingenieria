@@ -15,7 +15,7 @@ export function Header() {
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-14 w-50 items-center justify-center rounded-lg bg-[#ffffff] text-white font-heading font-bold text-xl">
+          <div className="flex h-14 w-50 items-center justify-center rounded-lg bg-transparent text-white font-heading font-bold text-xl">
             <img
               src="/images/og-image.jpg"
               className="w-full h-full object-cover"
