@@ -15,7 +15,7 @@ export function Footer() {
               
               <div className="flex h-14 w-50 items-center justify-center rounded-lg bg-[#ffffff] text-white font-heading font-bold text-xl">
                 <img
-                  src="https://static.wixstatic.com/media/4141ae_505e58d5279d2641ae59c23fced767d8.gif"
+                  src="/images/og-image.jpg"
                   className="w-full h-full object-cover"
                 />
               </div>
