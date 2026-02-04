@@ -44,3 +44,43 @@ export {
   getFilteredProjects,
   getRecentProjects,
 } from './projectService'
+
+// Leads Service
+export {
+  getAllLeads,
+  getLeadsByCategory,
+  getLeadsByStatus,
+  getLeadById,
+  getFilteredLeads,
+  getLeadStats,
+  updateLeadStatus,
+  updateLead,
+  getHotLeadsForAction,
+  getRecentLeads,
+} from './leadsService'
+
+// Google Maps Service (Lead Prospection)
+export {
+  searchGoogleMapsLeads,
+  searchBusinessInCity,
+  isGoogleMapsConfigured,
+} from './googleMapsService'
+
+// Web Scraping Service (SIEM, CANACINTRA)
+export {
+  searchSIEM,
+  searchCANACINTRA,
+  searchBusinessDirectories,
+  isScrapingEnabled,
+} from './scrapingService'
+
+// LinkedIn Service (MCP Docker integration)
+export {
+  searchLinkedIn,
+  searchCompany as searchLinkedInCompany,
+  getProfile as getLinkedInProfile,
+  batchSearchLinkedIn,
+  isLinkedInConfigured,
+  filterRelevantEmployees,
+  clearCache as clearLinkedInCache,
+} from './linkedinService'

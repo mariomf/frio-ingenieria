@@ -249,6 +249,20 @@ export interface Database {
           interest: string | null
           notes: string | null
           status: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          // AI Agent fields
+          score: number
+          score_breakdown: Json | null
+          category: 'HOT' | 'WARM' | 'COLD' | 'DISCARD'
+          industry: string | null
+          equipment_brands: string[]
+          assigned_agent: string | null
+          consent_status: 'pending' | 'granted' | 'denied' | 'unsubscribed'
+          last_contact_at: string | null
+          next_action_at: string | null
+          company_size: string | null
+          location: string | null
+          website: string | null
+          enrichment_data: Json | null
           created_at: string
           updated_at: string
         }
@@ -262,6 +276,19 @@ export interface Database {
           interest?: string | null
           notes?: string | null
           status?: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          score?: number
+          score_breakdown?: Json | null
+          category?: 'HOT' | 'WARM' | 'COLD' | 'DISCARD'
+          industry?: string | null
+          equipment_brands?: string[]
+          assigned_agent?: string | null
+          consent_status?: 'pending' | 'granted' | 'denied' | 'unsubscribed'
+          last_contact_at?: string | null
+          next_action_at?: string | null
+          company_size?: string | null
+          location?: string | null
+          website?: string | null
+          enrichment_data?: Json | null
           created_at?: string
           updated_at?: string
         }
@@ -275,6 +302,157 @@ export interface Database {
           interest?: string | null
           notes?: string | null
           status?: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+          score?: number
+          score_breakdown?: Json | null
+          category?: 'HOT' | 'WARM' | 'COLD' | 'DISCARD'
+          industry?: string | null
+          equipment_brands?: string[]
+          assigned_agent?: string | null
+          consent_status?: 'pending' | 'granted' | 'denied' | 'unsubscribed'
+          last_contact_at?: string | null
+          next_action_at?: string | null
+          company_size?: string | null
+          location?: string | null
+          website?: string | null
+          enrichment_data?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      agent_runs: {
+        Row: {
+          id: string
+          agent_id: string
+          agent_type: 'prospector' | 'engage' | 'qualifier' | 'enricher'
+          config: Json
+          results: Json
+          status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+          leads_found: number
+          leads_qualified: number
+          error: string | null
+          started_at: string | null
+          completed_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          agent_id: string
+          agent_type: 'prospector' | 'engage' | 'qualifier' | 'enricher'
+          config?: Json
+          results?: Json
+          status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+          leads_found?: number
+          leads_qualified?: number
+          error?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          agent_id?: string
+          agent_type?: 'prospector' | 'engage' | 'qualifier' | 'enricher'
+          config?: Json
+          results?: Json
+          status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+          leads_found?: number
+          leads_qualified?: number
+          error?: string | null
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+        }
+      }
+      lead_interactions: {
+        Row: {
+          id: string
+          lead_id: string
+          agent_id: string | null
+          channel: 'email' | 'whatsapp' | 'phone' | 'sms' | 'web' | 'linkedin'
+          direction: 'inbound' | 'outbound'
+          interaction_type: string
+          subject: string | null
+          content: string | null
+          metadata: Json | null
+          status: 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'replied' | 'bounced' | 'failed'
+          sent_at: string | null
+          opened_at: string | null
+          replied_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id: string
+          agent_id?: string | null
+          channel: 'email' | 'whatsapp' | 'phone' | 'sms' | 'web' | 'linkedin'
+          direction: 'inbound' | 'outbound'
+          interaction_type: string
+          subject?: string | null
+          content?: string | null
+          metadata?: Json | null
+          status?: 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'replied' | 'bounced' | 'failed'
+          sent_at?: string | null
+          opened_at?: string | null
+          replied_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string
+          agent_id?: string | null
+          channel?: 'email' | 'whatsapp' | 'phone' | 'sms' | 'web' | 'linkedin'
+          direction?: 'inbound' | 'outbound'
+          interaction_type?: string
+          subject?: string | null
+          content?: string | null
+          metadata?: Json | null
+          status?: 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'replied' | 'bounced' | 'failed'
+          sent_at?: string | null
+          opened_at?: string | null
+          replied_at?: string | null
+          created_at?: string
+        }
+      }
+      prospect_sources: {
+        Row: {
+          id: string
+          name: string
+          source_type: 'directory' | 'api' | 'scrape' | 'manual' | 'referral'
+          url: string | null
+          config: Json | null
+          last_scraped_at: string | null
+          leads_found_total: number
+          is_active: boolean
+          region: string | null
+          industries: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          source_type: 'directory' | 'api' | 'scrape' | 'manual' | 'referral'
+          url?: string | null
+          config?: Json | null
+          last_scraped_at?: string | null
+          leads_found_total?: number
+          is_active?: boolean
+          region?: string | null
+          industries?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          source_type?: 'directory' | 'api' | 'scrape' | 'manual' | 'referral'
+          url?: string | null
+          config?: Json | null
+          last_scraped_at?: string | null
+          leads_found_total?: number
+          is_active?: boolean
+          region?: string | null
+          industries?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -299,6 +477,9 @@ export type Part = Database['public']['Tables']['parts']['Row']
 export type Project = Database['public']['Tables']['projects']['Row']
 export type Quote = Database['public']['Tables']['quotes']['Row']
 export type Lead = Database['public']['Tables']['leads']['Row']
+export type AgentRun = Database['public']['Tables']['agent_runs']['Row']
+export type LeadInteraction = Database['public']['Tables']['lead_interactions']['Row']
+export type ProspectSource = Database['public']['Tables']['prospect_sources']['Row']
 
 // Filter types for projects
 export type IndustryFilter =
