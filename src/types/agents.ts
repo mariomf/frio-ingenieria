@@ -382,3 +382,78 @@ export const LINKEDIN_TARGET_TITLES = [
   'Plant Manager',
   'Plant Engineer',
 ] as const
+
+// =====================================================
+// Apollo.io Types
+// =====================================================
+
+export interface ApolloOrganization {
+  id: string
+  name: string
+  website_url: string | null
+  linkedin_url: string | null
+  industry: string | null
+  estimated_num_employees: number | null
+  city: string | null
+  state: string | null
+  country: string | null
+  phone: string | null
+  annual_revenue: number | null
+}
+
+export interface ApolloPerson {
+  id: string
+  first_name: string
+  last_name: string
+  name: string
+  title: string | null
+  email: string | null
+  email_status: 'verified' | 'guessed' | 'unavailable' | null
+  linkedin_url: string | null
+  organization_id: string | null
+  city: string | null
+  state: string | null
+  country: string | null
+}
+
+export interface ApolloSearchResponse {
+  people: ApolloPerson[]
+  organizations: ApolloOrganization[]
+  pagination: {
+    page: number
+    per_page: number
+    total_entries: number
+    total_pages: number
+  }
+}
+
+export interface ApolloEnrichmentResult {
+  company: ApolloOrganization | null
+  contacts: ApolloPerson[]
+  totalFound: number
+}
+
+// Unified enrichment source type
+export type EnrichmentSource = 'linkedin' | 'apollo' | 'hunter' | 'manual'
+
+// Extended contact with source tracking
+export interface EnrichedContact extends LinkedInProfile {
+  email?: string
+  emailVerified?: boolean
+  source: EnrichmentSource
+}
+
+// Apollo search input/output types for tool
+export interface SearchApolloInput {
+  companyName: string
+  titles?: string[]
+  limit?: number
+  getEmployees?: boolean
+}
+
+export interface SearchApolloOutput {
+  company: LinkedInCompany | null
+  employees: LinkedInProfile[]
+  totalFound: number
+  source: 'apollo'
+}

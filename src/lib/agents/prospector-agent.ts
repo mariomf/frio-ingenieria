@@ -1,6 +1,7 @@
 import { BaseAgent, createEmptyResults } from './base-agent'
 import { searchLeads } from './tools/search-leads'
 import { searchLinkedIn, isLinkedInSearchAvailable } from './tools/search-linkedin'
+import { searchApollo, isApolloSearchAvailable } from './tools/search-apollo'
 import { qualifyLead } from './tools/qualify-lead'
 import { enrichLead } from './tools/enrich-lead'
 import { saveLead, saveLeadsBatch } from './tools/save-lead'
@@ -21,6 +22,20 @@ interface ProcessedLead {
   scoreBreakdown: LeadScoreBreakdown
   enrichmentData?: unknown
   linkedInContacts?: LinkedInProfile[]
+}
+
+/**
+ * Get the enrichment provider preference
+ * 'apollo' (default) - Use Apollo.io for enrichment
+ * 'linkedin' - Use LinkedIn MCP (deprecated)
+ * 'both' - Use Apollo first, fallback to LinkedIn
+ */
+function getEnrichmentProvider(): 'apollo' | 'linkedin' | 'both' {
+  const provider = process.env.ENRICHMENT_PROVIDER?.toLowerCase()
+  if (provider === 'linkedin' || provider === 'both') {
+    return provider
+  }
+  return 'apollo' // default
 }
 
 export class ProspectorAgent extends BaseAgent {
@@ -93,11 +108,58 @@ export class ProspectorAgent extends BaseAgent {
                   this.log('warn', `Failed to enrich lead: ${rawLead.company}`, enrichError)
                 }
 
-                // Step 3b: LinkedIn enrichment (if available)
-                let linkedInContacts: LinkedInProfile[] = []
-                let linkedinCompanyUrl: string | undefined
+                // Step 3b: Contact enrichment (Apollo.io preferred, LinkedIn fallback)
+                let contacts: LinkedInProfile[] = []
+                let companyUrl: string | undefined
+                let enrichedIndustry: string | undefined
+                let enrichedCompanySize: string | undefined
 
-                if (isLinkedInSearchAvailable() && rawLead.company) {
+                const provider = getEnrichmentProvider()
+
+                // Try Apollo.io first (preferred)
+                if (
+                  (provider === 'apollo' || provider === 'both') &&
+                  isApolloSearchAvailable() &&
+                  rawLead.company
+                ) {
+                  try {
+                    const apolloResult = await searchApollo({
+                      companyName: rawLead.company,
+                      titles: [...LINKEDIN_TARGET_TITLES],
+                      limit: 5,
+                      getEmployees: true,
+                    })
+
+                    if (apolloResult.company) {
+                      companyUrl = apolloResult.company.linkedinUrl || apolloResult.company.website
+                      if (apolloResult.company.industry) {
+                        enrichedIndustry = apolloResult.company.industry
+                      }
+                      if (apolloResult.company.size) {
+                        enrichedCompanySize = apolloResult.company.size
+                      }
+                      this.log('info', `Found company via Apollo: ${apolloResult.company.name}`)
+                    }
+
+                    if (apolloResult.employees.length > 0) {
+                      contacts = apolloResult.employees
+                      this.log(
+                        'info',
+                        `Found ${contacts.length} contacts via Apollo for: ${rawLead.company}`
+                      )
+                    }
+                  } catch (apolloError) {
+                    this.log('warn', `Apollo enrichment failed for: ${rawLead.company}`, apolloError)
+                  }
+                }
+
+                // Fallback to LinkedIn if Apollo didn't return results or if configured
+                if (
+                  contacts.length === 0 &&
+                  (provider === 'linkedin' || provider === 'both') &&
+                  isLinkedInSearchAvailable() &&
+                  rawLead.company
+                ) {
                   try {
                     const linkedInResult = await searchLinkedIn({
                       companyName: rawLead.company,
@@ -106,18 +168,27 @@ export class ProspectorAgent extends BaseAgent {
                       getEmployees: true,
                     })
 
-                    if (linkedInResult.company) {
-                      linkedinCompanyUrl = linkedInResult.company.linkedinUrl
-                      this.log('info', `Found LinkedIn company: ${linkedInResult.company.name}`)
+                    if (linkedInResult.company && !companyUrl) {
+                      companyUrl = linkedInResult.company.linkedinUrl
+                      this.log(
+                        'info',
+                        `Found LinkedIn company (fallback): ${linkedInResult.company.name}`
+                      )
                     }
 
                     if (linkedInResult.employees.length > 0) {
-                      linkedInContacts = linkedInResult.employees
-                      this.log('info', `Found ${linkedInContacts.length} LinkedIn contacts for: ${rawLead.company}`)
+                      contacts = linkedInResult.employees
+                      this.log(
+                        'info',
+                        `Found ${contacts.length} LinkedIn contacts (fallback) for: ${rawLead.company}`
+                      )
                     }
                   } catch (linkedInError) {
-                    this.log('warn', `Failed LinkedIn enrichment for: ${rawLead.company}`, linkedInError)
-                    // Continue without LinkedIn data - it's optional
+                    this.log(
+                      'warn',
+                      `LinkedIn enrichment failed for: ${rawLead.company}`,
+                      linkedInError
+                    )
                   }
                 }
 
@@ -128,14 +199,16 @@ export class ProspectorAgent extends BaseAgent {
                     email: enrichmentData?.email || rawLead.email,
                     phone: enrichmentData?.phone || rawLead.phone,
                     website: enrichmentData?.website || rawLead.website,
-                    linkedinCompanyUrl,
-                    linkedinContacts: linkedInContacts.length > 0 ? linkedInContacts : undefined,
+                    industry: enrichedIndustry || rawLead.industry,
+                    companySize: enrichedCompanySize || rawLead.companySize,
+                    linkedinCompanyUrl: companyUrl,
+                    linkedinContacts: contacts.length > 0 ? contacts : undefined,
                   },
                   score: qualification.score,
                   category: qualification.category,
                   scoreBreakdown: qualification.scoreBreakdown,
                   enrichmentData,
-                  linkedInContacts,
+                  linkedInContacts: contacts,
                 })
 
                 // Update category counts
