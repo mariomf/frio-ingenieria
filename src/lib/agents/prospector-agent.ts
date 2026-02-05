@@ -6,6 +6,14 @@ import { qualifyLead } from './tools/qualify-lead'
 import { enrichLead } from './tools/enrich-lead'
 import { saveLead, saveLeadsBatch } from './tools/save-lead'
 import {
+  qualifyLeadLLM,
+  prioritizeLeadsLLM,
+  isHybridQualificationEnabled,
+  getSessionUsage,
+  resetSessionUsage,
+  formatCost,
+} from './llm'
+import {
   AgentConfig,
   AgentResults,
   RawLeadData,
@@ -22,6 +30,8 @@ interface ProcessedLead {
   scoreBreakdown: LeadScoreBreakdown
   enrichmentData?: unknown
   linkedInContacts?: LinkedInProfile[]
+  llmReasoning?: string
+  llmRecommendations?: string[]
 }
 
 /**
@@ -47,7 +57,14 @@ export class ProspectorAgent extends BaseAgent {
     const results = createEmptyResults()
     const processedLeads: ProcessedLead[] = []
 
-    this.log('info', 'Starting prospection run', config)
+    // Reset LLM usage tracking for this run
+    resetSessionUsage()
+    const useHybrid = isHybridQualificationEnabled()
+
+    this.log('info', 'Starting prospection run', {
+      ...config,
+      hybridMode: useHybrid,
+    })
 
     try {
       // Step 1: Search for leads from various sources
@@ -84,17 +101,32 @@ export class ProspectorAgent extends BaseAgent {
             leadsFound: searchResults.totalFound,
           })
 
-          // Step 2: Qualify each lead
+          // Step 2: Qualify each lead (hybrid: LLM or deterministic)
           for (const rawLead of searchResults.leads) {
             results.leadsProcessed++
 
             try {
-              const qualification = qualifyLead({ lead: rawLead })
+              // Use LLM qualification if hybrid mode is enabled
+              const qualification = useHybrid
+                ? await qualifyLeadLLM(rawLead)
+                : qualifyLead({ lead: rawLead })
 
-              this.log('info', `Qualified lead: ${rawLead.company}`, {
+              const llmReasoning = 'reasoning' in qualification
+                ? (qualification as { reasoning?: string }).reasoning
+                : undefined
+              const llmRecommendations = 'recommendations' in qualification
+                ? (qualification as { recommendations?: string[] }).recommendations
+                : undefined
+
+              const logDetails: Record<string, unknown> = {
                 score: qualification.score,
                 category: qualification.category,
-              })
+                mode: useHybrid ? 'llm' : 'deterministic',
+              }
+              if (llmReasoning) {
+                logDetails.reasoning = llmReasoning
+              }
+              this.log('info', `Qualified lead: ${rawLead.company}`, logDetails)
 
               // Only process leads that meet minimum score
               const minScore = config.minScore || 40
@@ -209,6 +241,8 @@ export class ProspectorAgent extends BaseAgent {
                   scoreBreakdown: qualification.scoreBreakdown,
                   enrichmentData,
                   linkedInContacts: contacts,
+                  llmReasoning,
+                  llmRecommendations,
                 })
 
                 // Update category counts
@@ -227,12 +261,48 @@ export class ProspectorAgent extends BaseAgent {
         }
       }
 
-      // Step 4: Save qualified leads (unless dry run)
-      if (!config.dryRun && processedLeads.length > 0) {
-        this.log('info', `Saving ${processedLeads.length} qualified leads`)
+      // Step 4: Prioritize leads with LLM (if enabled and more leads than limit)
+      let leadsToSave = processedLeads
+
+      if (useHybrid && processedLeads.length > maxLeads) {
+        this.log('info', `Prioritizing ${processedLeads.length} leads with LLM, selecting top ${maxLeads}`)
+
+        const priorityResult = await prioritizeLeadsLLM(
+          processedLeads.map(pl => ({
+            lead: pl.lead,
+            score: pl.score,
+            category: pl.category,
+          })),
+          maxLeads
+        )
+
+        if (priorityResult.data && !priorityResult.fallbackUsed) {
+          // Use LLM-prioritized leads
+          leadsToSave = priorityResult.data.map(item => {
+            const original = processedLeads.find(pl => pl.lead === item.lead)
+            return {
+              ...original!,
+              score: item.score, // Use adjusted score from LLM
+              category: item.category,
+              llmReasoning: item.reasoning,
+            }
+          })
+          this.log('info', `LLM prioritization complete, ${leadsToSave.length} leads selected`)
+        } else {
+          // Fallback: sort by score and take top N
+          leadsToSave = processedLeads
+            .sort((a, b) => b.score - a.score)
+            .slice(0, maxLeads)
+          this.log('info', `Using score-based prioritization (fallback), ${leadsToSave.length} leads selected`)
+        }
+      }
+
+      // Step 5: Save qualified leads (unless dry run)
+      if (!config.dryRun && leadsToSave.length > 0) {
+        this.log('info', `Saving ${leadsToSave.length} qualified leads`)
 
         const saveResults = await saveLeadsBatch(
-          processedLeads.map((pl) => ({
+          leadsToSave.map((pl) => ({
             lead: pl.lead,
             score: pl.score,
             category: pl.category,
@@ -251,9 +321,22 @@ export class ProspectorAgent extends BaseAgent {
 
         this.log('info', 'Save results', saveResults)
       } else if (config.dryRun) {
-        this.log('info', 'Dry run - leads not saved', { count: processedLeads.length })
+        this.log('info', 'Dry run - leads not saved', { count: leadsToSave.length })
         results.leadsCreated = 0
         results.leadsUpdated = 0
+      }
+
+      // Log LLM usage if hybrid mode was used
+      if (useHybrid) {
+        const usage = getSessionUsage()
+        if (usage.total > 0) {
+          this.log('info', 'LLM usage for this run', {
+            inputTokens: usage.input,
+            outputTokens: usage.output,
+            totalTokens: usage.total,
+            estimatedCost: formatCost(usage),
+          })
+        }
       }
 
       this.log('info', 'Prospection run completed', results)

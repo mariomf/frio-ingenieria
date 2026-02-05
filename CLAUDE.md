@@ -36,13 +36,26 @@ Services use two Supabase clients from `src/lib/supabase.ts`:
 ### AI Agent System
 Located in `src/lib/agents/`:
 
-**ProspectorAgent** (`prospector-agent.ts`) orchestrates lead generation:
-1. `search-leads` tool - Queries prospect sources (Google Maps, SIEM, CANACINTRA)
-2. `qualify-lead` tool - Scores leads 0-100 (demographic + intent + engagement factors)
-3. `enrich-lead` tool - Fetches additional contact data
-4. `save-lead` tool - Persists to Supabase `leads` table
+**ProspectorAgent** (`prospector-agent.ts`) orchestrates lead generation with **hybrid intelligence**:
 
-Agent prompts in `src/lib/agents/prompts/prospector.ts` define scoring criteria:
+#### Hybrid Qualification Flow (default when ANTHROPIC_API_KEY is set)
+1. **Search** (deterministic) - Queries prospect sources (Google Maps, SIEM, CANACINTRA)
+2. **Qualify** (LLM) - Claude intelligently scores leads understanding context
+3. **Enrich** (deterministic) - Apollo.io API for company/contact data
+4. **Prioritize** (LLM) - Claude selects top leads when exceeding limit
+5. **Save** (deterministic) - Persists to Supabase
+
+#### Deterministic Flow (fallback or when QUALIFICATION_MODE=deterministic)
+1. `search-leads` tool - Queries prospect sources
+2. `qualify-lead` tool - Keyword-based scoring (0-100)
+3. `enrich-lead` tool - Apollo.io enrichment
+4. `save-lead` tool - Persists to Supabase
+
+#### LLM Intelligence Module (`src/lib/agents/llm/`)
+- `qualify-llm.ts` - Claude-powered qualification with context understanding
+- `llmService.ts` - Anthropic API integration with rate limiting & cost tracking
+
+Scoring criteria:
 - HOT (80-100): Immediate contact
 - WARM (60-79): Active nurturing
 - COLD (40-59): Passive nurturing
@@ -104,8 +117,8 @@ DISABLE_SCRAPING=true        # Disable all scraping
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| ProspectorAgent | ✅ Complete | LangChain with tools |
-| Lead Scoring System | ✅ Complete | 0-100 pts, HOT/WARM/COLD |
+| ProspectorAgent | ✅ Complete | Hybrid LLM + deterministic |
+| Lead Scoring System | ✅ Complete | Claude (hybrid) or keywords (deterministic) |
 | Dashboard de Leads | ✅ Complete | UI with stats and cards |
 | Supabase Integration | ✅ Complete | All tables created |
 | Google Maps API | ✅ Complete | Real API + mock fallback |
@@ -116,26 +129,36 @@ DISABLE_SCRAPING=true        # Disable all scraping
 
 ### Recent Changes (2026-02-05)
 
-1. **Apollo.io Integration** (`src/lib/services/apolloService.ts`)
+1. **Hybrid LLM Qualification** (`src/lib/agents/llm/`)
+   - Claude-powered intelligent lead qualification
+   - Context understanding (not just keywords)
+   - LLM prioritization for lead selection
+   - Automatic fallback to deterministic if API unavailable
+   - Cost tracking and token usage logging
+   - New env var: `QUALIFICATION_MODE` (hybrid/deterministic)
+
+2. **Apollo.io Integration** (`src/lib/services/apolloService.ts`)
    - Replaced LinkedIn MCP with Apollo.io API
    - Company enrichment (industry, size, website, LinkedIn)
    - Free plan support with intelligent domain guessing
    - People search ready for paid plan upgrade
 
-2. **Email Notifications** (`src/lib/services/emailService.ts`)
+3. **Email Notifications** (`src/lib/services/emailService.ts`)
    - Resend integration for HOT lead alerts
    - Beautiful HTML email templates
    - Auto-notification on new HOT leads (score 80+)
    - Daily summary email with lead stats
    - Configurable recipients via env vars
 
-3. **Environment Variables Added**
+4. **Environment Variables Added**
+   - `ANTHROPIC_API_KEY` - Required for hybrid LLM mode
+   - `QUALIFICATION_MODE` - 'hybrid' (default) | 'deterministic'
    - `APOLLO_API_KEY` - Apollo.io API
    - `ENRICHMENT_PROVIDER` - 'apollo' | 'linkedin' | 'both'
    - `RESEND_FROM_EMAIL` - Sender email (optional)
    - `LEAD_NOTIFICATION_EMAILS` - Recipients for alerts
 
-4. **Vercel Cron Configuration** (`vercel.json`)
+5. **Vercel Cron Configuration** (`vercel.json`)
    - Automatic prospection daily at 6:00 AM
    - Sends daily summary email with results
    - Secured with CRON_SECRET header
@@ -149,6 +172,9 @@ DISABLE_SCRAPING=true        # Disable all scraping
 ### Test Commands
 
 ```bash
+# Test hybrid LLM qualification (requires ANTHROPIC_API_KEY)
+npx tsx scripts/test-hybrid.ts
+
 # Test Apollo.io service
 npx tsx scripts/test-apollo.ts
 
