@@ -224,7 +224,7 @@ function guessCompanyDomains(companyName: string): string[] {
   }
 
   // Remove duplicates
-  return [...new Set(domains)]
+  return Array.from(new Set(domains))
 }
 
 /**
