@@ -4,6 +4,11 @@
  *
  * Provides company and contact enrichment capabilities for lead prospection.
  * Replaces LinkedIn scraping with official Apollo.io API.
+ *
+ * Plan Limitations (as of 2024):
+ * - Free plan: Organization enrichment only
+ * - Basic ($49/mo): + People search, 500 credits
+ * - Professional ($99/mo): + More credits, bulk operations
  */
 
 import {
@@ -23,6 +28,9 @@ let lastRequestTime = 0
 // Cache for organization profiles to reduce API calls
 const organizationCache = new Map<string, { data: ApolloOrganization | null; timestamp: number }>()
 const CACHE_TTL_MS = 30 * 60 * 1000 // 30 minutes
+
+// Track API capabilities (some endpoints require paid plans)
+let peopleSearchAvailable: boolean | null = null // null = unknown, will be detected on first call
 
 /**
  * Check if Apollo.io API is configured
@@ -58,6 +66,24 @@ async function applyRateLimit(): Promise<void> {
 }
 
 /**
+ * API error response structure
+ */
+interface ApolloErrorResponse {
+  error?: string
+  error_code?: string
+}
+
+/**
+ * Result of an API call with error tracking
+ */
+interface ApiFetchResult<T> {
+  data: T | null
+  error?: string
+  errorCode?: string
+  requiresUpgrade?: boolean
+}
+
+/**
  * Make an authenticated request to Apollo.io API
  */
 async function apolloFetch<T>(
@@ -66,11 +92,11 @@ async function apolloFetch<T>(
     method?: 'GET' | 'POST'
     body?: Record<string, unknown>
   } = {}
-): Promise<T | null> {
+): Promise<ApiFetchResult<T>> {
   const apiKey = getApiKey()
   if (!apiKey) {
     console.warn('[Apollo] API key not configured')
-    return null
+    return { data: null, error: 'API key not configured' }
   }
 
   await applyRateLimit()
@@ -90,23 +116,41 @@ async function apolloFetch<T>(
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`[Apollo] API error ${response.status}: ${errorText}`)
+      let errorData: ApolloErrorResponse = {}
+
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        // Not JSON, use raw text
+      }
 
       // Handle specific error codes
       if (response.status === 401) {
         console.error('[Apollo] Invalid API key')
+        return { data: null, error: 'Invalid API key', errorCode: 'INVALID_KEY' }
       } else if (response.status === 429) {
         console.error('[Apollo] Rate limit exceeded')
+        return { data: null, error: 'Rate limit exceeded', errorCode: 'RATE_LIMITED' }
+      } else if (response.status === 403 && errorData.error_code === 'API_INACCESSIBLE') {
+        // This endpoint requires a paid plan
+        console.warn(`[Apollo] Endpoint ${endpoint} requires paid plan`)
+        return {
+          data: null,
+          error: errorData.error || 'Requires paid plan',
+          errorCode: 'REQUIRES_UPGRADE',
+          requiresUpgrade: true
+        }
       }
 
-      return null
+      console.error(`[Apollo] API error ${response.status}: ${errorText}`)
+      return { data: null, error: errorData.error || errorText, errorCode: errorData.error_code }
     }
 
     const data = await response.json()
-    return data as T
+    return { data: data as T }
   } catch (error) {
     console.error(`[Apollo] Request failed for ${endpoint}:`, error)
-    return null
+    return { data: null, error: error instanceof Error ? error.message : 'Unknown error' }
   }
 }
 
@@ -127,6 +171,63 @@ function extractDomain(input: string): string | undefined {
 }
 
 /**
+ * Guess possible domain names for a company
+ * Useful for Mexican/LATAM companies that may not have obvious domains
+ */
+function guessCompanyDomains(companyName: string): string[] {
+  const domains: string[] = []
+
+  // Normalize the company name
+  const normalized = companyName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+    .trim()
+
+  // Extract main words (skip common suffixes)
+  const skipWords = ['sa', 'de', 'cv', 'srl', 'grupo', 'industrias', 'alimentos', 'inc', 'corp', 'llc']
+  const words = normalized.split(/\s+/).filter(w => w.length > 2 && !skipWords.includes(w))
+
+  if (words.length === 0) return domains
+
+  // Try common domain patterns
+  const baseName = words[0]
+  const fullName = words.join('')
+
+  // Mexican companies
+  domains.push(`${baseName}.com.mx`)
+  domains.push(`${fullName}.com.mx`)
+  domains.push(`grupo${baseName}.com.mx`)
+
+  // International
+  domains.push(`${baseName}.com`)
+  domains.push(`${fullName}.com`)
+  domains.push(`grupo${baseName}.com`)
+
+  // Known mappings for common Mexican companies
+  const knownDomains: Record<string, string> = {
+    'lala': 'grupolala.com',
+    'sigma': 'sigma-alimentos.com',
+    'bimbo': 'grupobimbo.com',
+    'modelo': 'gmodelo.com.mx',
+    'femsa': 'femsa.com',
+    'alpura': 'alpura.com',
+    'bachoco': 'bachoco.com.mx',
+    'sukarne': 'sukarne.com',
+    'gruma': 'gruma.com',
+    'herdez': 'grupoherdez.com.mx',
+  }
+
+  if (knownDomains[baseName]) {
+    domains.unshift(knownDomains[baseName]) // Add known domain first
+  }
+
+  // Remove duplicates
+  return [...new Set(domains)]
+}
+
+/**
  * Categorize company size based on employee count
  */
 function categorizeCompanySize(employees: number | null): string {
@@ -141,6 +242,7 @@ function categorizeCompanySize(employees: number | null): string {
 
 /**
  * Enrich an organization by domain
+ * This endpoint is available on the free plan
  */
 export async function enrichOrganization(domain: string): Promise<ApolloOrganization | null> {
   if (!isApolloConfigured()) {
@@ -162,11 +264,11 @@ export async function enrichOrganization(domain: string): Promise<ApolloOrganiza
     organization?: ApolloOrganization
   }
 
-  const response = await apolloFetch<OrganizationEnrichResponse>('/organizations/enrich', {
+  const result = await apolloFetch<OrganizationEnrichResponse>('/organizations/enrich', {
     body: { domain },
   })
 
-  const organization = response?.organization || null
+  const organization = result.data?.organization || null
 
   // Cache the result
   organizationCache.set(cacheKey, { data: organization, timestamp: Date.now() })
@@ -180,6 +282,7 @@ export async function enrichOrganization(domain: string): Promise<ApolloOrganiza
 
 /**
  * Enrich a person by email
+ * Note: May require paid plan depending on endpoint
  */
 export async function enrichPerson(email: string): Promise<ApolloPerson | null> {
   if (!isApolloConfigured()) {
@@ -193,15 +296,23 @@ export async function enrichPerson(email: string): Promise<ApolloPerson | null> 
     person?: ApolloPerson
   }
 
-  const response = await apolloFetch<PersonMatchResponse>('/people/match', {
+  const result = await apolloFetch<PersonMatchResponse>('/people/match', {
     body: { email },
   })
 
-  return response?.person || null
+  if (result.requiresUpgrade) {
+    console.log('[Apollo] Person enrichment requires paid plan')
+    return null
+  }
+
+  return result.data?.person || null
 }
 
 /**
  * Search for people at a company with optional title filtering
+ *
+ * Note: People search requires a paid Apollo.io plan.
+ * On free plan, this will still return company data via organization enrichment.
  */
 export async function searchPeopleByCompany(
   companyName: string,
@@ -224,9 +335,10 @@ export async function searchPeopleByCompany(
     domain,
   } = options
 
-  console.log(`[Apollo] Searching people at company: ${companyName}`)
+  console.log(`[Apollo] Searching company: ${companyName}`)
 
   // First, try to enrich the organization if we have a domain
+  // This works on free plan
   let organization: ApolloOrganization | null = null
   const extractedDomain = domain || extractDomain(companyName)
 
@@ -234,7 +346,26 @@ export async function searchPeopleByCompany(
     organization = await enrichOrganization(extractedDomain)
   }
 
-  // Search for people
+  // If no domain provided, try to find organization by name using the enrichment endpoint
+  // with a guessed domain (common patterns for Mexican companies)
+  if (!organization && !extractedDomain) {
+    const guessedDomains = guessCompanyDomains(companyName)
+    for (const guessedDomain of guessedDomains) {
+      organization = await enrichOrganization(guessedDomain)
+      if (organization) {
+        console.log(`[Apollo] Found organization via guessed domain: ${guessedDomain}`)
+        break
+      }
+    }
+  }
+
+  // If people search is known to be unavailable (free plan), skip it
+  if (peopleSearchAvailable === false) {
+    console.log('[Apollo] People search not available on current plan, using org data only')
+    return { company: organization, contacts: [], totalFound: 0 }
+  }
+
+  // Search for people (requires paid plan)
   const searchBody: Record<string, unknown> = {
     q_organization_name: companyName,
     per_page: limit,
@@ -251,22 +382,35 @@ export async function searchPeopleByCompany(
     searchBody.organization_ids = [organization.id]
   }
 
-  const response = await apolloFetch<ApolloSearchResponse>('/mixed_people/search', {
+  const result = await apolloFetch<ApolloSearchResponse>('/mixed_people/search', {
     body: searchBody,
   })
 
-  if (!response) {
+  // Handle plan limitation - mark people search as unavailable for future calls
+  if (result.requiresUpgrade) {
+    peopleSearchAvailable = false
+    console.log('[Apollo] People search requires paid plan - will use org enrichment only')
+    console.log('[Apollo] Upgrade at: https://app.apollo.io/settings/plans')
+    return { company: organization, contacts: [], totalFound: 0 }
+  }
+
+  // People search is available
+  if (peopleSearchAvailable === null) {
+    peopleSearchAvailable = true
+  }
+
+  if (!result.data) {
     console.log(`[Apollo] No results for company: ${companyName}`)
     return { company: organization, contacts: [], totalFound: 0 }
   }
 
   // Use organization from search results if we didn't find one earlier
-  if (!organization && response.organizations?.length > 0) {
-    organization = response.organizations[0]
+  if (!organization && result.data.organizations?.length > 0) {
+    organization = result.data.organizations[0]
   }
 
-  const contacts = response.people || []
-  const totalFound = response.pagination?.total_entries || contacts.length
+  const contacts = result.data.people || []
+  const totalFound = result.data.pagination?.total_entries || contacts.length
 
   console.log(`[Apollo] Found ${contacts.length} contacts (${totalFound} total) at ${companyName}`)
 
@@ -279,6 +423,7 @@ export async function searchPeopleByCompany(
 
 /**
  * Search for companies by industry and location
+ * Note: This may require a paid plan
  */
 export async function searchOrganizations(
   options: {
@@ -319,11 +464,16 @@ export async function searchOrganizations(
     }
   }
 
-  const response = await apolloFetch<OrganizationSearchResponse>('/mixed_companies/search', {
+  const result = await apolloFetch<OrganizationSearchResponse>('/mixed_companies/search', {
     body: searchBody,
   })
 
-  return response?.organizations || []
+  if (result.requiresUpgrade) {
+    console.log('[Apollo] Organization search requires paid plan')
+    return []
+  }
+
+  return result.data?.organizations || []
 }
 
 /**
@@ -360,6 +510,37 @@ export async function batchSearchContacts(
  */
 export function getCompanySizeCategory(org: ApolloOrganization | null): string {
   return categorizeCompanySize(org?.estimated_num_employees ?? null)
+}
+
+/**
+ * Check if people search is available (requires paid plan)
+ * Returns: true = available, false = not available, null = unknown (not tested yet)
+ */
+export function isPeopleSearchAvailable(): boolean | null {
+  return peopleSearchAvailable
+}
+
+/**
+ * Get the current plan capabilities based on API responses
+ */
+export function getPlanCapabilities(): {
+  configured: boolean
+  organizationEnrichment: boolean
+  peopleSearch: boolean | null
+} {
+  return {
+    configured: isApolloConfigured(),
+    organizationEnrichment: isApolloConfigured(), // Always available when configured
+    peopleSearch: peopleSearchAvailable,
+  }
+}
+
+/**
+ * Reset the plan capability detection (useful for testing after plan upgrade)
+ */
+export function resetPlanDetection(): void {
+  peopleSearchAvailable = null
+  console.log('[Apollo] Plan capability detection reset')
 }
 
 /**

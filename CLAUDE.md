@@ -110,45 +110,56 @@ DISABLE_SCRAPING=true        # Disable all scraping
 | Supabase Integration | ✅ Complete | All tables created |
 | Google Maps API | ✅ Complete | Real API + mock fallback |
 | SIEM/CANACINTRA | ✅ Complete | Curated dataset + DENUE API ready |
-| Notificaciones (Resend) | ⏳ Pending | Next to implement |
+| Apollo.io Integration | ✅ Complete | Company enrichment (free plan) |
+| Notificaciones (Resend) | ✅ Complete | HOT lead alerts + daily summary |
 | Twilio WhatsApp | ⏳ Pending | Variables configured |
 
-### Recent Changes (2026-01-31)
+### Recent Changes (2026-02-05)
 
-1. **Google Maps Integration** (`src/lib/services/googleMapsService.ts`)
-   - Text Search API for finding businesses
-   - Place Details API for phone/website
-   - Industry mapping with Spanish search terms
-   - Coverage: 10 cities Mexico, 5 Central America, 5 South America
-   - Fallback to mock data when API unavailable
+1. **Apollo.io Integration** (`src/lib/services/apolloService.ts`)
+   - Replaced LinkedIn MCP with Apollo.io API
+   - Company enrichment (industry, size, website, LinkedIn)
+   - Free plan support with intelligent domain guessing
+   - People search ready for paid plan upgrade
 
-2. **SIEM/CANACINTRA Service** (`src/lib/services/scrapingService.ts`)
-   - Curated dataset of 30 real Mexican industrial companies
-   - DENUE API integration ready (requires free token from INEGI)
-   - Companies include: Grupo LALA, Sigma Alimentos, Grupo Bimbo, etc.
-   - Automatic fallback when scraping blocked
+2. **Email Notifications** (`src/lib/services/emailService.ts`)
+   - Resend integration for HOT lead alerts
+   - Beautiful HTML email templates
+   - Auto-notification on new HOT leads (score 80+)
+   - Daily summary email with lead stats
+   - Configurable recipients via env vars
 
 3. **Environment Variables Added**
-   - `GOOGLE_MAPS_API_KEY` - Google Places API
-   - `DISABLE_GOOGLE_MAPS` - Temporary disable flag
-   - `DENUE_API_TOKEN` - INEGI API token
-   - `DISABLE_SCRAPING` - Disable all scraping
+   - `APOLLO_API_KEY` - Apollo.io API
+   - `ENRICHMENT_PROVIDER` - 'apollo' | 'linkedin' | 'both'
+   - `RESEND_FROM_EMAIL` - Sender email (optional)
+   - `LEAD_NOTIFICATION_EMAILS` - Recipients for alerts
+
+4. **Vercel Cron Configuration** (`vercel.json`)
+   - Automatic prospection daily at 6:00 AM
+   - Sends daily summary email with results
+   - Secured with CRON_SECRET header
 
 ### Next Steps (Pending)
 
-1. **Notificaciones Resend** - Email alerts for HOT leads
-2. **Twilio WhatsApp** - WhatsApp notifications for sales team
-3. **Enriquecimiento real** - Hunter.io/Clearbit integration
-4. **Admin panel** - Manual lead management
+1. **Twilio WhatsApp** - WhatsApp notifications for sales team
+2. **Airtable Sync** - Bidirectional sync for sales team view
+3. **Admin panel** - Manual lead management
 
 ### Test Commands
 
 ```bash
+# Test Apollo.io service
+npx tsx scripts/test-apollo.ts
+
+# Test email notifications
+npx tsx scripts/test-email.ts
+
 # Test scraping services
 npx tsx scripts/test-scraping.ts
 
 # Test prospector API
-curl -X POST http://localhost:3000/api/agents/prospector \
+curl -X POST http://localhost:3001/api/agents/prospector \
   -H "Content-Type: application/json" \
   -d '{"industries":["dairy","meat"],"regions":["mexico"],"maxLeads":10}'
 ```

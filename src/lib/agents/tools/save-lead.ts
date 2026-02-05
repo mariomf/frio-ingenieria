@@ -6,7 +6,9 @@ import {
   SaveLeadOutput,
   LeadCategory,
   LeadScoreBreakdown,
+  LinkedInProfile,
 } from '@/types/agents'
+import { sendHotLeadNotification, isEmailConfigured } from '@/lib/services/emailService'
 
 // Create untyped supabase client for leads operations with new fields
 function getLeadsSupabase() {
@@ -59,6 +61,39 @@ export async function saveLead(input: SaveLeadInput): Promise<SaveLeadOutput> {
         }
       }
 
+      // Send notification if lead was upgraded to HOT
+      const wasNotHot = (existingLead.score || 0) < 80
+      const isNowHot = input.category === 'HOT'
+
+      if (wasNotHot && isNowHot && isEmailConfigured()) {
+        try {
+          const linkedinContacts = (input.lead as SaveLeadInput['lead'] & { linkedinContacts?: LinkedInProfile[] })
+            .linkedinContacts?.map(c => ({
+              name: c.name,
+              title: c.title,
+              email: (c as LinkedInProfile & { email?: string }).email,
+            }))
+
+          await sendHotLeadNotification({
+            id: existingLead.id,
+            name: input.lead.name,
+            company: input.lead.company || 'Unknown',
+            email: input.lead.email,
+            phone: input.lead.phone,
+            industry: input.lead.industry,
+            location: input.lead.location,
+            website: input.lead.website,
+            companySize: input.lead.companySize,
+            score: input.score,
+            source: input.lead.source || 'ai_prospector',
+            linkedinContacts,
+          })
+          console.log(`[save-lead] Lead upgraded to HOT, notification sent for: ${input.lead.company}`)
+        } catch (notifyError) {
+          console.error(`[save-lead] Failed to send upgrade notification:`, notifyError)
+        }
+      }
+
       return {
         id: existingLead.id,
         isNew: false,
@@ -105,6 +140,38 @@ export async function saveLead(input: SaveLeadInput): Promise<SaveLeadOutput> {
       isNew: true,
       success: false,
       error: insertError.message,
+    }
+  }
+
+  // Send notification for HOT leads
+  if (input.category === 'HOT' && isEmailConfigured()) {
+    try {
+      // Extract LinkedIn contacts if available
+      const linkedinContacts = (input.lead as SaveLeadInput['lead'] & { linkedinContacts?: LinkedInProfile[] })
+        .linkedinContacts?.map(c => ({
+          name: c.name,
+          title: c.title,
+          email: (c as LinkedInProfile & { email?: string }).email,
+        }))
+
+      await sendHotLeadNotification({
+        id: newLead.id,
+        name: input.lead.name,
+        company: input.lead.company || 'Unknown',
+        email: input.lead.email,
+        phone: input.lead.phone,
+        industry: input.lead.industry,
+        location: input.lead.location,
+        website: input.lead.website,
+        companySize: input.lead.companySize,
+        score: input.score,
+        source: input.lead.source || 'ai_prospector',
+        linkedinContacts,
+      })
+      console.log(`[save-lead] HOT lead notification sent for: ${input.lead.company}`)
+    } catch (notifyError) {
+      // Don't fail the save if notification fails
+      console.error(`[save-lead] Failed to send HOT lead notification:`, notifyError)
     }
   }
 

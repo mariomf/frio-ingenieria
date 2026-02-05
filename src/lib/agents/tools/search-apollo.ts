@@ -11,6 +11,7 @@ import {
   searchPeopleByCompany,
   isApolloConfigured,
   getCompanySizeCategory,
+  getPlanCapabilities,
 } from '@/lib/services/apolloService'
 
 /**
@@ -57,10 +58,23 @@ function mapApolloToLinkedInTypes(
 }
 
 /**
+ * Extended output type with plan info
+ */
+interface SearchApolloExtendedOutput extends SearchApolloOutput {
+  planInfo?: {
+    peopleSearchAvailable: boolean
+    message?: string
+  }
+}
+
+/**
  * Search Apollo.io for a company and its key employees
  * This function wraps the Apollo service for direct use
+ *
+ * Note: On free plan, only company data is available.
+ * Contact/people search requires a paid Apollo.io plan.
  */
-export async function searchApollo(input: SearchApolloInput): Promise<SearchApolloOutput> {
+export async function searchApollo(input: SearchApolloInput): Promise<SearchApolloExtendedOutput> {
   if (!isApolloConfigured()) {
     console.log('[search-apollo] Apollo.io not configured, returning empty result')
     return {
@@ -76,45 +90,33 @@ export async function searchApollo(input: SearchApolloInput): Promise<SearchApol
   console.log(`[search-apollo] Searching Apollo.io for: ${companyName}`)
 
   try {
-    // If getEmployees is false, only fetch company data
-    if (getEmployees === false) {
-      const result = await searchPeopleByCompany(companyName, {
-        titles: titles || [...LINKEDIN_TARGET_TITLES],
-        limit: 0,
-      })
-
-      return {
-        company: result.company
-          ? {
-              name: result.company.name,
-              linkedinUrl: result.company.linkedin_url || '',
-              industry: result.company.industry || undefined,
-              size: getCompanySizeCategory(result.company),
-              website: result.company.website_url || undefined,
-              headquarters: result.company.city && result.company.country
-                ? `${result.company.city}, ${result.company.country}`
-                : undefined,
-            }
-          : null,
-        employees: [],
-        totalFound: 0,
-        source: 'apollo',
-      }
-    }
-
     const apolloResult = await searchPeopleByCompany(companyName, {
       titles: titles || [...LINKEDIN_TARGET_TITLES],
-      limit: limit || 5,
+      limit: getEmployees === false ? 0 : (limit || 5),
       emailStatus: ['verified', 'guessed'],
     })
 
     const result = mapApolloToLinkedInTypes(apolloResult)
 
+    // Check plan capabilities and add info
+    const planCapabilities = getPlanCapabilities()
+    const planInfo: SearchApolloExtendedOutput['planInfo'] = {
+      peopleSearchAvailable: planCapabilities.peopleSearch === true,
+    }
+
+    // Add helpful message if people search is not available
+    if (planCapabilities.peopleSearch === false && result.employees.length === 0) {
+      planInfo.message = 'Contact search requires paid Apollo.io plan. Company data enrichment is available.'
+    }
+
     console.log(
       `[search-apollo] Found company: ${result.company?.name || 'N/A'}, contacts: ${result.employees.length}`
     )
 
-    return result
+    return {
+      ...result,
+      planInfo,
+    }
   } catch (error) {
     console.error(`[search-apollo] Error searching Apollo.io for ${companyName}:`, error)
     return {
@@ -134,14 +136,18 @@ export const createSearchApolloTool = () => {
   return new DynamicStructuredTool({
     name: 'search_apollo',
     description: `Search Apollo.io for company information and decision-makers.
-Returns company details and contacts filtered by job titles, with verified emails when available.
+Returns company details (industry, size, website, LinkedIn) and contacts filtered by job titles.
+
+PLAN LIMITATIONS:
+- Free plan: Company enrichment only (industry, size, website, headquarters)
+- Paid plan: + Contact search with verified emails
 
 Target job titles include: ${LINKEDIN_TARGET_TITLES.slice(0, 7).join(', ')}.
 
 Use this to:
-- Find decision-makers at target companies
-- Get verified emails for outreach
-- Enrich leads with company data (industry, size, website)`,
+- Enrich leads with company data (always available)
+- Find decision-makers at target companies (paid plan)
+- Get verified emails for outreach (paid plan)`,
     schema: z.object({
       companyName: z.string().describe('Name of the company to search'),
       titles: z

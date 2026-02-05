@@ -50,6 +50,8 @@ import {
   enrichOrganization,
   getCompanySizeCategory,
   getCacheStats,
+  getPlanCapabilities,
+  resetPlanDetection,
 } from '../src/lib/services/apolloService'
 
 const TEST_COMPANIES = [
@@ -78,7 +80,32 @@ async function testApolloConfiguration() {
     return false
   }
 
+  // Reset detection to test fresh
+  resetPlanDetection()
+
   return true
+}
+
+function showPlanCapabilities() {
+  console.log('\n=== Plan Capabilities ===\n')
+
+  const caps = getPlanCapabilities()
+
+  console.log('Current plan features:')
+  console.log(`  ✅ Organization enrichment: Always available`)
+  console.log(`  ${caps.peopleSearch === true ? '✅' : caps.peopleSearch === false ? '❌' : '❓'} People/contact search: ${
+    caps.peopleSearch === true ? 'Available' :
+    caps.peopleSearch === false ? 'Requires paid plan' :
+    'Not tested yet'
+  }`)
+
+  if (caps.peopleSearch === false) {
+    console.log('\n📊 Free Plan Summary:')
+    console.log('   - Can enrich company data (industry, size, website, LinkedIn)')
+    console.log('   - Cannot search for contacts/employees')
+    console.log('   - Cannot get verified emails')
+    console.log('\n💡 To get contacts, upgrade at: https://app.apollo.io/settings/plans')
+  }
 }
 
 async function testOrganizationEnrichment() {
@@ -106,10 +133,11 @@ async function testOrganizationEnrichment() {
 
 async function testContactSearch() {
   console.log('\n=== Contact Search Test ===\n')
+  console.log('Note: Contact search requires paid Apollo.io plan')
+  console.log('On free plan, only company data will be returned\n')
 
   for (const company of TEST_COMPANIES.slice(0, 2)) {
-    console.log(`\nSearching contacts at: ${company}`)
-    console.log(`Target titles: ${TEST_TITLES.slice(0, 3).join(', ')}`)
+    console.log(`\nSearching: ${company}`)
 
     const result = await searchPeopleByCompany(company, {
       titles: TEST_TITLES,
@@ -118,20 +146,24 @@ async function testContactSearch() {
     })
 
     if (result.company) {
-      console.log(`\n📊 Company Info:`)
+      console.log(`\n📊 Company Info (Free Plan):`)
       console.log(`   Name: ${result.company.name}`)
       console.log(`   Industry: ${result.company.industry || 'N/A'}`)
       console.log(`   Size: ${getCompanySizeCategory(result.company)}`)
+      console.log(`   Website: ${result.company.website_url || 'N/A'}`)
+      console.log(`   LinkedIn: ${result.company.linkedin_url || 'N/A'}`)
+    } else {
+      console.log(`   ⚠️  No company data found`)
     }
 
-    console.log(`\n👥 Contacts found: ${result.contacts.length} (${result.totalFound} total)`)
-
-    for (const contact of result.contacts.slice(0, 3)) {
-      console.log(`\n   • ${contact.name}`)
-      console.log(`     Title: ${contact.title || 'N/A'}`)
-      console.log(`     Email: ${contact.email || 'N/A'} (${contact.email_status || 'N/A'})`)
-      console.log(`     LinkedIn: ${contact.linkedin_url || 'N/A'}`)
-      console.log(`     Location: ${contact.city}, ${contact.country}`)
+    if (result.contacts.length > 0) {
+      console.log(`\n👥 Contacts (Paid Plan): ${result.contacts.length} found`)
+      for (const contact of result.contacts.slice(0, 3)) {
+        console.log(`   • ${contact.name} - ${contact.title || 'N/A'}`)
+        console.log(`     Email: ${contact.email || 'N/A'} (${contact.email_status || 'N/A'})`)
+      }
+    } else {
+      console.log(`\n👥 Contacts: None (requires paid plan)`)
     }
 
     console.log('\n' + '-'.repeat(50))
@@ -174,11 +206,19 @@ async function main() {
     await testContactSearch()
     await testCaching()
 
+    // Show plan capabilities summary
+    showPlanCapabilities()
+
     console.log('\n' + '='.repeat(50))
-    console.log('✅ All tests completed successfully!')
+    console.log('✅ All tests completed!')
     console.log('\nNext steps:')
     console.log('1. Run the prospector: curl -X POST http://localhost:3000/api/agents/prospector')
     console.log('2. Check leads dashboard: http://localhost:3000/dashboard/leads')
+
+    const caps = getPlanCapabilities()
+    if (caps.peopleSearch === false) {
+      console.log('\n⚠️  Note: ProspectorAgent will use company enrichment only (free plan)')
+    }
   } catch (error) {
     console.error('\n❌ Test failed:', error)
     process.exit(1)
