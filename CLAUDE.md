@@ -51,8 +51,21 @@ Located in `src/lib/agents/`:
 3. `enrich-lead` tool - Apollo.io enrichment
 4. `save-lead` tool - Persists to Supabase
 
+#### Person Mode (`searchMode: 'person'`)
+Pipeline: Search empresas → Discover personas → Qualify persona → Enrich → Prioritize → Save
+
+- `personDiscoveryService.ts` - Finds decision-makers at companies using 5 strategies:
+  1. Existing contacts from Apollo/LinkedIn enrichment
+  2. Website scraping (/contacto, /equipo, /nosotros)
+  3. LLM inference (Claude generates likely titles + email patterns)
+  4. Email pattern generation from company domain
+  5. Apollo People Search (ready for paid plan)
+- Person qualification reweights scoring: jobTitle 0-25pts, emailAvailability 0-15pts, industry 0-10pts
+- Leads table extended with: `lead_type`, `first_name`, `last_name`, `job_title`, `person_linkedin_url`, `email_confidence`, `parent_company_id`
+- Dashboard shows person name + job title + company for person leads
+
 #### LLM Intelligence Module (`src/lib/agents/llm/`)
-- `qualify-llm.ts` - Claude-powered qualification with context understanding
+- `qualify-llm.ts` - Claude-powered qualification with context understanding (company + person prompts)
 - `llmService.ts` - Anthropic API integration with rate limiting & cost tracking
 
 Scoring criteria:
@@ -62,7 +75,7 @@ Scoring criteria:
 - DISCARD (<40): Do not process
 
 ### API Endpoints
-- `POST /api/agents/prospector` - Start prospection run with config (industries, regions, maxLeads)
+- `POST /api/agents/prospector` - Start prospection run with config (industries, regions, maxLeads, searchMode, targetTitles, maxPeoplePerCompany)
 - `GET /api/agents/prospector?runId=x` - Check run status
 - `GET /api/cron/prospect` - Scheduled job (requires CRON_SECRET header)
 
@@ -117,9 +130,10 @@ DISABLE_SCRAPING=true        # Disable all scraping
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| ProspectorAgent | ✅ Complete | Hybrid LLM + deterministic |
-| Lead Scoring System | ✅ Complete | Claude (hybrid) or keywords (deterministic) |
-| Dashboard de Leads | ✅ Complete | UI with stats and cards |
+| ProspectorAgent | ✅ Complete | Hybrid LLM + deterministic, company + person modes |
+| Lead Scoring System | ✅ Complete | Claude (hybrid) or keywords (deterministic), person-reweighted |
+| Person Discovery | ✅ Complete | Multi-strategy contact discovery at companies |
+| Dashboard de Leads | ✅ Complete | UI with stats, cards, person/company display |
 | Supabase Integration | ✅ Complete | All tables created |
 | Google Maps API | ✅ Complete | Real API + mock fallback |
 | SIEM/CANACINTRA | ✅ Complete | Curated dataset + DENUE API ready |
@@ -127,7 +141,18 @@ DISABLE_SCRAPING=true        # Disable all scraping
 | Notificaciones (Resend) | ✅ Complete | HOT lead alerts + daily summary |
 | Twilio WhatsApp | ⏳ Pending | Variables configured |
 
-### Recent Changes (2026-02-05)
+### Recent Changes (2026-02-09)
+
+1. **Person Mode for Prospector Agent**
+   - New `searchMode: 'person'` in API and agent config
+   - `personDiscoveryService.ts` - Multi-strategy contact discovery
+   - Person-specific LLM qualification prompt (`QUALIFY_PERSON_SYSTEM_PROMPT`)
+   - Person-specific deterministic scoring (jobTitle 25pts, emailAvailability 15pts)
+   - DB migration: `003_add_person_fields.sql` (lead_type, first_name, last_name, job_title, etc.)
+   - Dashboard displays person leads with name + job title + company + badges
+   - API params: `searchMode`, `targetTitles[]`, `maxPeoplePerCompany`
+
+### Changes (2026-02-05)
 
 1. **Hybrid LLM Qualification** (`src/lib/agents/llm/`)
    - Claude-powered intelligent lead qualification
@@ -184,10 +209,15 @@ npx tsx scripts/test-email.ts
 # Test scraping services
 npx tsx scripts/test-scraping.ts
 
-# Test prospector API
+# Test prospector API (company mode - default)
 curl -X POST http://localhost:3001/api/agents/prospector \
   -H "Content-Type: application/json" \
   -d '{"industries":["dairy","meat"],"regions":["mexico"],"maxLeads":10}'
+
+# Test prospector API (person mode)
+curl -X POST http://localhost:3001/api/agents/prospector \
+  -H "Content-Type: application/json" \
+  -d '{"searchMode":"person","industries":["dairy"],"regions":["mexico"],"maxLeads":10,"maxPeoplePerCompany":3}'
 ```
 
 ### Notion Plan Reference

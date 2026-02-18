@@ -263,6 +263,14 @@ export interface Database {
           location: string | null
           website: string | null
           enrichment_data: Json | null
+          // Person mode fields
+          lead_type: 'company' | 'person'
+          first_name: string | null
+          last_name: string | null
+          job_title: string | null
+          person_linkedin_url: string | null
+          email_confidence: 'verified' | 'guessed' | 'pattern' | 'unknown' | null
+          parent_company_id: string | null
           created_at: string
           updated_at: string
         }
@@ -289,6 +297,13 @@ export interface Database {
           location?: string | null
           website?: string | null
           enrichment_data?: Json | null
+          lead_type?: 'company' | 'person'
+          first_name?: string | null
+          last_name?: string | null
+          job_title?: string | null
+          person_linkedin_url?: string | null
+          email_confidence?: 'verified' | 'guessed' | 'pattern' | 'unknown' | null
+          parent_company_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -315,6 +330,13 @@ export interface Database {
           location?: string | null
           website?: string | null
           enrichment_data?: Json | null
+          lead_type?: 'company' | 'person'
+          first_name?: string | null
+          last_name?: string | null
+          job_title?: string | null
+          person_linkedin_url?: string | null
+          email_confidence?: 'verified' | 'guessed' | 'pattern' | 'unknown' | null
+          parent_company_id?: string | null
           created_at?: string
           updated_at?: string
         }

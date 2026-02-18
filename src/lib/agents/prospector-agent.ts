@@ -13,6 +13,7 @@ import {
   resetSessionUsage,
   formatCost,
 } from './llm'
+import { discoverPeopleAtCompany } from '@/lib/services/personDiscoveryService'
 import {
   AgentConfig,
   AgentResults,
@@ -20,6 +21,7 @@ import {
   LeadCategory,
   LeadScoreBreakdown,
   LinkedInProfile,
+  SearchMode,
   LINKEDIN_TARGET_TITLES,
 } from '@/types/agents'
 
@@ -53,6 +55,110 @@ export class ProspectorAgent extends BaseAgent {
     super('prospector')
   }
 
+  /**
+   * Enrich a company lead with Apollo/LinkedIn contacts and company data
+   */
+  private async enrichCompanyLead(rawLead: RawLeadData): Promise<{
+    enrichmentData: unknown
+    contacts: LinkedInProfile[]
+    companyUrl?: string
+    enrichedIndustry?: string
+    enrichedCompanySize?: string
+  }> {
+    let enrichmentData
+    try {
+      enrichmentData = await enrichLead({ lead: rawLead })
+      this.log('info', `Enriched lead: ${rawLead.company}`)
+    } catch (enrichError) {
+      this.log('warn', `Failed to enrich lead: ${rawLead.company}`, enrichError)
+    }
+
+    let contacts: LinkedInProfile[] = []
+    let companyUrl: string | undefined
+    let enrichedIndustry: string | undefined
+    let enrichedCompanySize: string | undefined
+
+    const provider = getEnrichmentProvider()
+
+    // Try Apollo.io first (preferred)
+    if (
+      (provider === 'apollo' || provider === 'both') &&
+      isApolloSearchAvailable() &&
+      rawLead.company
+    ) {
+      try {
+        const apolloResult = await searchApollo({
+          companyName: rawLead.company,
+          titles: [...LINKEDIN_TARGET_TITLES],
+          limit: 5,
+          getEmployees: true,
+        })
+
+        if (apolloResult.company) {
+          companyUrl = apolloResult.company.linkedinUrl || apolloResult.company.website
+          if (apolloResult.company.industry) {
+            enrichedIndustry = apolloResult.company.industry
+          }
+          if (apolloResult.company.size) {
+            enrichedCompanySize = apolloResult.company.size
+          }
+          this.log('info', `Found company via Apollo: ${apolloResult.company.name}`)
+        }
+
+        if (apolloResult.employees.length > 0) {
+          contacts = apolloResult.employees
+          this.log(
+            'info',
+            `Found ${contacts.length} contacts via Apollo for: ${rawLead.company}`
+          )
+        }
+      } catch (apolloError) {
+        this.log('warn', `Apollo enrichment failed for: ${rawLead.company}`, apolloError)
+      }
+    }
+
+    // Fallback to LinkedIn if Apollo didn't return results or if configured
+    if (
+      contacts.length === 0 &&
+      (provider === 'linkedin' || provider === 'both') &&
+      isLinkedInSearchAvailable() &&
+      rawLead.company
+    ) {
+      try {
+        const linkedInResult = await searchLinkedIn({
+          companyName: rawLead.company,
+          titles: [...LINKEDIN_TARGET_TITLES],
+          limit: 5,
+          getEmployees: true,
+        })
+
+        if (linkedInResult.company && !companyUrl) {
+          companyUrl = linkedInResult.company.linkedinUrl
+          this.log(
+            'info',
+            `Found LinkedIn company (fallback): ${linkedInResult.company.name}`
+          )
+        }
+
+        if (linkedInResult.employees.length > 0) {
+          contacts = linkedInResult.employees
+          this.log(
+            'info',
+            `Found ${contacts.length} LinkedIn contacts (fallback) for: ${rawLead.company}`
+          )
+        }
+      } catch (linkedInError) {
+        this.log(
+          'warn',
+          `LinkedIn enrichment failed for: ${rawLead.company}`,
+          linkedInError
+        )
+      }
+    }
+
+    return { enrichmentData, contacts, companyUrl, enrichedIndustry, enrichedCompanySize }
+  }
+
   async run(config: AgentConfig): Promise<AgentResults> {
     const results = createEmptyResults()
     const processedLeads: ProcessedLead[] = []
@@ -60,14 +166,18 @@ export class ProspectorAgent extends BaseAgent {
     // Reset LLM usage tracking for this run
     resetSessionUsage()
     const useHybrid = isHybridQualificationEnabled()
+    const searchMode: SearchMode = config.searchMode || 'company'
+    const targetTitles = config.targetTitles || [...LINKEDIN_TARGET_TITLES]
+    const maxPeoplePerCompany = config.maxPeoplePerCompany || 3
 
     this.log('info', 'Starting prospection run', {
       ...config,
       hybridMode: useHybrid,
+      searchMode,
     })
 
     try {
-      // Step 1: Search for leads from various sources
+      // Step 1: Search for company leads from various sources
       const industries = config.industries || [
         'food_processing',
         'dairy',
@@ -83,7 +193,9 @@ export class ProspectorAgent extends BaseAgent {
 
       this.log('info', 'Searching leads', { industries, regions, maxLeads, sources })
 
-      // Search each source
+      // Collect all company leads first
+      const companyLeads: RawLeadData[] = []
+
       for (const source of sources) {
         try {
           const searchResults = await searchLeads({
@@ -101,163 +213,164 @@ export class ProspectorAgent extends BaseAgent {
             leadsFound: searchResults.totalFound,
           })
 
-          // Step 2: Qualify each lead (hybrid: LLM or deterministic)
-          for (const rawLead of searchResults.leads) {
-            results.leadsProcessed++
-
-            try {
-              // Use LLM qualification if hybrid mode is enabled
-              const qualification = useHybrid
-                ? await qualifyLeadLLM(rawLead)
-                : qualifyLead({ lead: rawLead })
-
-              const llmReasoning = 'reasoning' in qualification
-                ? (qualification as { reasoning?: string }).reasoning
-                : undefined
-              const llmRecommendations = 'recommendations' in qualification
-                ? (qualification as { recommendations?: string[] }).recommendations
-                : undefined
-
-              const logDetails: Record<string, unknown> = {
-                score: qualification.score,
-                category: qualification.category,
-                mode: useHybrid ? 'llm' : 'deterministic',
-              }
-              if (llmReasoning) {
-                logDetails.reasoning = llmReasoning
-              }
-              this.log('info', `Qualified lead: ${rawLead.company}`, logDetails)
-
-              // Only process leads that meet minimum score
-              const minScore = config.minScore || 40
-              if (qualification.score >= minScore) {
-                // Step 3: Enrich the lead
-                let enrichmentData
-                try {
-                  enrichmentData = await enrichLead({ lead: rawLead })
-                  this.log('info', `Enriched lead: ${rawLead.company}`)
-                } catch (enrichError) {
-                  this.log('warn', `Failed to enrich lead: ${rawLead.company}`, enrichError)
-                }
-
-                // Step 3b: Contact enrichment (Apollo.io preferred, LinkedIn fallback)
-                let contacts: LinkedInProfile[] = []
-                let companyUrl: string | undefined
-                let enrichedIndustry: string | undefined
-                let enrichedCompanySize: string | undefined
-
-                const provider = getEnrichmentProvider()
-
-                // Try Apollo.io first (preferred)
-                if (
-                  (provider === 'apollo' || provider === 'both') &&
-                  isApolloSearchAvailable() &&
-                  rawLead.company
-                ) {
-                  try {
-                    const apolloResult = await searchApollo({
-                      companyName: rawLead.company,
-                      titles: [...LINKEDIN_TARGET_TITLES],
-                      limit: 5,
-                      getEmployees: true,
-                    })
-
-                    if (apolloResult.company) {
-                      companyUrl = apolloResult.company.linkedinUrl || apolloResult.company.website
-                      if (apolloResult.company.industry) {
-                        enrichedIndustry = apolloResult.company.industry
-                      }
-                      if (apolloResult.company.size) {
-                        enrichedCompanySize = apolloResult.company.size
-                      }
-                      this.log('info', `Found company via Apollo: ${apolloResult.company.name}`)
-                    }
-
-                    if (apolloResult.employees.length > 0) {
-                      contacts = apolloResult.employees
-                      this.log(
-                        'info',
-                        `Found ${contacts.length} contacts via Apollo for: ${rawLead.company}`
-                      )
-                    }
-                  } catch (apolloError) {
-                    this.log('warn', `Apollo enrichment failed for: ${rawLead.company}`, apolloError)
-                  }
-                }
-
-                // Fallback to LinkedIn if Apollo didn't return results or if configured
-                if (
-                  contacts.length === 0 &&
-                  (provider === 'linkedin' || provider === 'both') &&
-                  isLinkedInSearchAvailable() &&
-                  rawLead.company
-                ) {
-                  try {
-                    const linkedInResult = await searchLinkedIn({
-                      companyName: rawLead.company,
-                      titles: [...LINKEDIN_TARGET_TITLES],
-                      limit: 5,
-                      getEmployees: true,
-                    })
-
-                    if (linkedInResult.company && !companyUrl) {
-                      companyUrl = linkedInResult.company.linkedinUrl
-                      this.log(
-                        'info',
-                        `Found LinkedIn company (fallback): ${linkedInResult.company.name}`
-                      )
-                    }
-
-                    if (linkedInResult.employees.length > 0) {
-                      contacts = linkedInResult.employees
-                      this.log(
-                        'info',
-                        `Found ${contacts.length} LinkedIn contacts (fallback) for: ${rawLead.company}`
-                      )
-                    }
-                  } catch (linkedInError) {
-                    this.log(
-                      'warn',
-                      `LinkedIn enrichment failed for: ${rawLead.company}`,
-                      linkedInError
-                    )
-                  }
-                }
-
-                // Add to processed leads
-                processedLeads.push({
-                  lead: {
-                    ...rawLead,
-                    email: enrichmentData?.email || rawLead.email,
-                    phone: enrichmentData?.phone || rawLead.phone,
-                    website: enrichmentData?.website || rawLead.website,
-                    industry: enrichedIndustry || rawLead.industry,
-                    companySize: enrichedCompanySize || rawLead.companySize,
-                    linkedinCompanyUrl: companyUrl,
-                    linkedinContacts: contacts.length > 0 ? contacts : undefined,
-                  },
-                  score: qualification.score,
-                  category: qualification.category,
-                  scoreBreakdown: qualification.scoreBreakdown,
-                  enrichmentData,
-                  linkedInContacts: contacts,
-                  llmReasoning,
-                  llmRecommendations,
-                })
-
-                // Update category counts
-                results.leadsByCategory[qualification.category]++
-              } else {
-                results.leadsByCategory.DISCARD++
-              }
-            } catch (qualifyError) {
-              this.log('error', `Failed to qualify lead: ${rawLead.company}`, qualifyError)
-              results.errors.push(`Qualify error: ${rawLead.company}`)
-            }
-          }
+          companyLeads.push(...searchResults.leads)
         } catch (sourceError) {
           this.log('error', `Failed to search source: ${source}`, sourceError)
           results.errors.push(`Search error: ${source}`)
+        }
+      }
+
+      // Step 1.5: Person discovery (if searchMode === 'person')
+      let leadsToQualify: RawLeadData[]
+
+      if (searchMode === 'person') {
+        this.log('info', `Person mode: discovering people at ${companyLeads.length} companies`)
+        const personLeads: RawLeadData[] = []
+
+        for (const companyLead of companyLeads) {
+          // First enrich the company to get contacts and other data
+          const enrichment = await this.enrichCompanyLead(companyLead)
+          const enrichedCompanyLead: RawLeadData = {
+            ...companyLead,
+            email: (enrichment.enrichmentData as Record<string, string>)?.email || companyLead.email,
+            phone: (enrichment.enrichmentData as Record<string, string>)?.phone || companyLead.phone,
+            website: (enrichment.enrichmentData as Record<string, string>)?.website || companyLead.website,
+            industry: enrichment.enrichedIndustry || companyLead.industry,
+            companySize: enrichment.enrichedCompanySize || companyLead.companySize,
+            linkedinCompanyUrl: enrichment.companyUrl,
+            linkedinContacts: enrichment.contacts.length > 0 ? enrichment.contacts : undefined,
+          }
+
+          // Discover people at this company
+          const discovery = await discoverPeopleAtCompany(enrichedCompanyLead, {
+            targetTitles,
+            maxPeople: maxPeoplePerCompany,
+          })
+
+          if (discovery.people.length === 0) {
+            this.log('warn', `No people found at ${companyLead.company}, using company lead as fallback`)
+            // Fallback: keep the company lead as-is
+            personLeads.push(enrichedCompanyLead)
+            continue
+          }
+
+          // Create a person lead for each discovered person
+          for (const person of discovery.people) {
+            const personLead: RawLeadData = {
+              name: person.fullName,
+              company: companyLead.company,
+              email: person.email,
+              phone: person.phone,
+              industry: enrichedCompanyLead.industry,
+              location: enrichedCompanyLead.location,
+              website: enrichedCompanyLead.website,
+              companySize: enrichedCompanyLead.companySize,
+              source: `${companyLead.source}:${person.source}`,
+              linkedinCompanyUrl: enrichment.companyUrl,
+              // Person-specific fields
+              leadType: 'person',
+              firstName: person.firstName,
+              lastName: person.lastName,
+              jobTitle: person.jobTitle,
+              personLinkedinUrl: person.linkedinUrl,
+              emailConfidence: person.emailConfidence,
+            }
+            personLeads.push(personLead)
+          }
+
+          this.log('info', `Discovered ${discovery.people.length} people at ${companyLead.company}`)
+        }
+
+        this.log('info', `Person discovery complete: ${personLeads.length} person leads from ${companyLeads.length} companies`)
+        leadsToQualify = personLeads
+      } else {
+        leadsToQualify = companyLeads
+      }
+
+      // Step 2: Qualify and enrich each lead
+      for (const rawLead of leadsToQualify) {
+        results.leadsProcessed++
+
+        try {
+          // Use LLM qualification if hybrid mode is enabled
+          const qualification = useHybrid
+            ? await qualifyLeadLLM(rawLead, searchMode)
+            : qualifyLead({ lead: rawLead }, searchMode)
+
+          const llmReasoning = 'reasoning' in qualification
+            ? (qualification as { reasoning?: string }).reasoning
+            : undefined
+          const llmRecommendations = 'recommendations' in qualification
+            ? (qualification as { recommendations?: string[] }).recommendations
+            : undefined
+
+          const logDetails: Record<string, unknown> = {
+            score: qualification.score,
+            category: qualification.category,
+            mode: useHybrid ? 'llm' : 'deterministic',
+          }
+          if (llmReasoning) {
+            logDetails.reasoning = llmReasoning
+          }
+
+          const leadLabel = searchMode === 'person'
+            ? `${rawLead.name} @ ${rawLead.company}`
+            : rawLead.company
+          this.log('info', `Qualified lead: ${leadLabel}`, logDetails)
+
+          // Only process leads that meet minimum score
+          const minScore = config.minScore || 40
+          if (qualification.score >= minScore) {
+            // Enrich company leads (person leads were already enriched in step 1.5)
+            let enrichmentData: unknown
+            let contacts: LinkedInProfile[] = []
+            let companyUrl: string | undefined
+            let enrichedIndustry: string | undefined
+            let enrichedCompanySize: string | undefined
+
+            if (searchMode === 'company') {
+              const enrichment = await this.enrichCompanyLead(rawLead)
+              enrichmentData = enrichment.enrichmentData
+              contacts = enrichment.contacts
+              companyUrl = enrichment.companyUrl
+              enrichedIndustry = enrichment.enrichedIndustry
+              enrichedCompanySize = enrichment.enrichedCompanySize
+            }
+
+            // Build the final lead data
+            const finalLead: RawLeadData = searchMode === 'company'
+              ? {
+                  ...rawLead,
+                  email: (enrichmentData as Record<string, string>)?.email || rawLead.email,
+                  phone: (enrichmentData as Record<string, string>)?.phone || rawLead.phone,
+                  website: (enrichmentData as Record<string, string>)?.website || rawLead.website,
+                  industry: enrichedIndustry || rawLead.industry,
+                  companySize: enrichedCompanySize || rawLead.companySize,
+                  linkedinCompanyUrl: companyUrl,
+                  linkedinContacts: contacts.length > 0 ? contacts : undefined,
+                }
+              : rawLead // Person leads are already enriched
+
+            processedLeads.push({
+              lead: finalLead,
+              score: qualification.score,
+              category: qualification.category,
+              scoreBreakdown: qualification.scoreBreakdown,
+              enrichmentData,
+              linkedInContacts: contacts,
+              llmReasoning,
+              llmRecommendations,
+            })
+
+            // Update category counts
+            results.leadsByCategory[qualification.category]++
+          } else {
+            results.leadsByCategory.DISCARD++
+          }
+        } catch (qualifyError) {
+          const label = rawLead.leadType === 'person' ? rawLead.name : rawLead.company
+          this.log('error', `Failed to qualify lead: ${label}`, qualifyError)
+          results.errors.push(`Qualify error: ${label}`)
         }
       }
 

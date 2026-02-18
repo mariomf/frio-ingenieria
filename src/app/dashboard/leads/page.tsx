@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { getAllLeads, getLeadStats } from '@/lib/services/leadsService'
 import type { ExtendedLead, LeadCategory } from '@/types/agents'
-import { Building2, Mail, Phone, MapPin, TrendingUp, Users, Flame, ThermometerSun, Snowflake, X } from 'lucide-react'
+import { Building2, Mail, Phone, MapPin, TrendingUp, Users, Flame, ThermometerSun, Snowflake, X, User, Briefcase } from 'lucide-react'
 
 // Category badge colors and icons
 const categoryConfig: Record<LeadCategory, { color: string; bgColor: string; icon: React.ReactNode; label: string }> = {
@@ -102,17 +102,56 @@ function ScoreBar({ score }: { score: number }) {
   )
 }
 
+function LeadTypeBadge({ leadType }: { leadType?: string }) {
+  if (leadType === 'person') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
+        <User className="w-3 h-3" />
+        Persona
+      </span>
+    )
+  }
+  return null // Company is implicit, no badge needed
+}
+
 function LeadCard({ lead }: { lead: ExtendedLead }) {
+  const isPerson = lead.lead_type === 'person'
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">{lead.company || lead.name}</h3>
-          {lead.company && lead.name !== lead.company && (
-            <p className="text-sm text-gray-500">{lead.name}</p>
+          {isPerson ? (
+            <>
+              <h3 className="font-semibold text-gray-900">
+                {lead.first_name && lead.last_name
+                  ? `${lead.first_name} ${lead.last_name}`
+                  : lead.name}
+              </h3>
+              {lead.job_title && (
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <Briefcase className="w-3.5 h-3.5" />
+                  <span>{lead.job_title}</span>
+                </div>
+              )}
+              {lead.company && (
+                <p className="text-sm text-gray-500">
+                  <Building2 className="w-3.5 h-3.5 inline mr-1" />
+                  {lead.company}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <h3 className="font-semibold text-gray-900">{lead.company || lead.name}</h3>
+              {lead.company && lead.name !== lead.company && (
+                <p className="text-sm text-gray-500">{lead.name}</p>
+              )}
+            </>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          <LeadTypeBadge leadType={lead.lead_type} />
           <CategoryBadge category={lead.category as LeadCategory} />
           <StatusBadge status={lead.status} />
         </div>
@@ -141,6 +180,9 @@ function LeadCard({ lead }: { lead: ExtendedLead }) {
             <a href={`mailto:${lead.email}`} className="text-blue-600 hover:underline">
               {lead.email}
             </a>
+            {isPerson && lead.email_confidence && lead.email_confidence !== 'verified' && (
+              <span className="text-xs text-gray-400">({lead.email_confidence})</span>
+            )}
           </div>
         )}
         {lead.phone && (

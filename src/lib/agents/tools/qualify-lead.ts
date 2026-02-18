@@ -6,6 +6,8 @@ import {
   RawLeadData,
   LeadCategory,
   LeadScoreBreakdown,
+  SearchMode,
+  EmailConfidence,
   TARGET_INDUSTRIES,
   EQUIPMENT_BRANDS,
   LinkedInProfile,
@@ -244,6 +246,138 @@ function scoreLinkedInContacts(linkedinContacts?: LinkedInProfile[]): number {
   return Math.min(score, 8) // Cap at 8 points
 }
 
+// Person job title scoring (reweighted for person mode)
+// Tier 1 (25pts): Gerente/Jefe de Mantenimiento
+// Tier 2 (20pts): Gerente de Compras, Ingeniero de Planta
+// Tier 3 (15pts): Supervisor, Gerente de Operaciones
+// Tier 4 (10pts): C-Level (CEO, COO, Director General)
+// Tier 5 (5pts): Any management/engineering keyword
+const PERSON_TITLE_TIERS: Array<{ points: number; keywords: string[] }> = [
+  {
+    points: 25,
+    keywords: [
+      'gerente de mantenimiento', 'jefe de mantenimiento',
+      'maintenance manager', 'head of maintenance',
+    ],
+  },
+  {
+    points: 20,
+    keywords: [
+      'gerente de compras', 'jefe de compras', 'ingeniero de planta',
+      'purchasing manager', 'plant engineer', 'procurement manager',
+    ],
+  },
+  {
+    points: 15,
+    keywords: [
+      'supervisor de mantenimiento', 'gerente de operaciones',
+      'operations manager', 'maintenance supervisor',
+      'director de planta', 'plant manager',
+    ],
+  },
+  {
+    points: 10,
+    keywords: [
+      'ceo', 'coo', 'cto', 'director general', 'presidente',
+      'chief executive', 'chief operating', 'general manager',
+    ],
+  },
+  {
+    points: 5,
+    keywords: [
+      'gerente', 'manager', 'director', 'jefe', 'ingeniero',
+      'engineer', 'supervisor', 'coordinador',
+    ],
+  },
+]
+
+function scorePersonJobTitle(jobTitle?: string): number {
+  if (!jobTitle) return 0
+  const titleLower = jobTitle.toLowerCase()
+
+  for (const tier of PERSON_TITLE_TIERS) {
+    if (tier.keywords.some(kw => titleLower.includes(kw))) {
+      return tier.points
+    }
+  }
+  return 0
+}
+
+// Email availability scoring for person mode
+function scoreEmailAvailability(emailConfidence?: EmailConfidence): number {
+  if (!emailConfidence) return 0
+  switch (emailConfidence) {
+    case 'verified': return 15
+    case 'guessed': return 10
+    case 'pattern': return 5
+    case 'unknown': return 0
+    default: return 0
+  }
+}
+
+// Person-specific qualification function
+function qualifyPersonLead(input: QualifyLeadInput): QualifyLeadOutput {
+  const lead = input.lead as RawLeadData
+
+  // Person mode reweighted scoring
+  const jobTitleScore = scorePersonJobTitle(lead.jobTitle)
+  const emailScore = scoreEmailAvailability(lead.emailConfidence)
+  const industryScore = scoreIndustry(lead.industry, lead.company || lead.name)
+  const companySizeScore = Math.min(scoreCompanySize(lead.companySize), 5) // Capped at 5
+  const locationScore = scoreLocation(lead.location)
+  const equipmentScore = scoreEquipmentBrands(undefined, lead.company)
+  const refaccionesScore = scoreRefaccionesNeed(lead.rawData?.toString())
+  const linkedInContactsScore = lead.personLinkedinUrl ? 5 : 0
+
+  const demographicTotal = Math.min(industryScore, 10) + companySizeScore + locationScore + jobTitleScore
+  const intentTotal = equipmentScore + refaccionesScore
+  const engagementTotal = emailScore + linkedInContactsScore
+  const totalScore = Math.min(demographicTotal + intentTotal + engagementTotal, 100)
+
+  const category = calculateCategory(totalScore)
+
+  const scoreBreakdown: LeadScoreBreakdown = {
+    demographic: {
+      industry: Math.min(industryScore, 10),
+      companySize: companySizeScore,
+      location: locationScore,
+      jobTitle: jobTitleScore,
+    },
+    intent: {
+      equipmentBrands: equipmentScore,
+      refaccionesNeed: refaccionesScore,
+    },
+    engagement: {
+      purchaseHistory: emailScore,
+      previousInteractions: linkedInContactsScore,
+    },
+    total: totalScore,
+  }
+
+  const reasons: string[] = []
+  if (jobTitleScore >= 20) reasons.push('Puesto de alta decisión')
+  else if (jobTitleScore >= 10) reasons.push('Puesto relevante')
+  if (emailScore >= 15) reasons.push('Email verificado')
+  else if (emailScore >= 5) reasons.push('Email disponible')
+  if (industryScore > 0) reasons.push('Industria objetivo')
+  if (locationScore >= 10) reasons.push('Ubicado en México')
+  else if (locationScore >= 5) reasons.push('Ubicado en LATAM')
+  if (equipmentScore > 0) reasons.push('Posible usuario de Frick/Danfoss')
+  if (lead.personLinkedinUrl) reasons.push('LinkedIn disponible')
+
+  if (totalScore < 40) {
+    reasons.push('Score bajo, no califica para seguimiento activo')
+  }
+
+  return {
+    score: totalScore,
+    category,
+    scoreBreakdown,
+    qualifies: totalScore >= 40,
+    reasons,
+  }
+}
+
 // Calculate category from score
 function calculateCategory(score: number): LeadCategory {
   if (score >= 80) return 'HOT'
@@ -252,8 +386,11 @@ function calculateCategory(score: number): LeadCategory {
   return 'DISCARD'
 }
 
-// Main qualification function
-export function qualifyLead(input: QualifyLeadInput): QualifyLeadOutput {
+// Main qualification function (dispatches based on search mode)
+export function qualifyLead(input: QualifyLeadInput, searchMode?: SearchMode): QualifyLeadOutput {
+  if (searchMode === 'person' || (input.lead as RawLeadData).leadType === 'person') {
+    return qualifyPersonLead(input)
+  }
   const lead = input.lead as RawLeadData
 
   // Calculate demographic scores
@@ -350,5 +487,8 @@ export {
   scoreEquipmentBrands,
   scoreRefaccionesNeed,
   scoreLinkedInContacts,
+  scorePersonJobTitle,
+  scoreEmailAvailability,
   calculateCategory,
+  qualifyPersonLead,
 }

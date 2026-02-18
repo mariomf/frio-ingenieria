@@ -25,31 +25,55 @@ function getLeadsSupabase() {
 // Save a single lead to the database
 export async function saveLead(input: SaveLeadInput): Promise<SaveLeadOutput> {
   const supabase = getLeadsSupabase()
+  const isPersonLead = input.lead.leadType === 'person'
 
-  // Check if lead already exists by email
-  const { data: existingLead } = await supabase
-    .from('leads')
-    .select('id, score')
-    .eq('email', input.lead.email || '')
-    .single()
+  // Dedup logic: person leads by name+company+lead_type, company leads by email
+  let existingLead: { id: string; score: number } | null = null
+
+  if (isPersonLead) {
+    const { data } = await supabase
+      .from('leads')
+      .select('id, score')
+      .eq('name', input.lead.name)
+      .eq('company', input.lead.company || '')
+      .eq('lead_type', 'person')
+      .single()
+    existingLead = data
+  } else {
+    const { data } = await supabase
+      .from('leads')
+      .select('id, score')
+      .eq('email', input.lead.email || '')
+      .single()
+    existingLead = data
+  }
 
   if (existingLead) {
     // Update existing lead if new score is higher
     if (input.score > (existingLead.score || 0)) {
+      const updateData: Record<string, unknown> = {
+        score: input.score,
+        score_breakdown: input.scoreBreakdown as unknown as Record<string, unknown>,
+        category: input.category,
+        industry: input.lead.industry || null,
+        location: input.lead.location || null,
+        website: input.lead.website || null,
+        company_size: input.lead.companySize || null,
+        enrichment_data: input.enrichmentData as unknown as Record<string, unknown> || null,
+        assigned_agent: input.agentId,
+        updated_at: new Date().toISOString(),
+      }
+      // Include person fields if this is a person lead
+      if (input.lead.leadType === 'person') {
+        updateData.first_name = input.lead.firstName || null
+        updateData.last_name = input.lead.lastName || null
+        updateData.job_title = input.lead.jobTitle || null
+        updateData.person_linkedin_url = input.lead.personLinkedinUrl || null
+        updateData.email_confidence = input.lead.emailConfidence || null
+      }
       const { error: updateError } = await supabase
         .from('leads')
-        .update({
-          score: input.score,
-          score_breakdown: input.scoreBreakdown as unknown as Record<string, unknown>,
-          category: input.category,
-          industry: input.lead.industry || null,
-          location: input.lead.location || null,
-          website: input.lead.website || null,
-          company_size: input.lead.companySize || null,
-          enrichment_data: input.enrichmentData as unknown as Record<string, unknown> || null,
-          assigned_agent: input.agentId,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', existingLead.id)
 
       if (updateError) {
@@ -130,6 +154,13 @@ export async function saveLead(input: SaveLeadInput): Promise<SaveLeadOutput> {
       company_size: input.lead.companySize || null,
       enrichment_data: input.enrichmentData as unknown as Record<string, unknown> || null,
       assigned_agent: input.agentId,
+      // Person mode fields
+      lead_type: input.lead.leadType || 'company',
+      first_name: input.lead.firstName || null,
+      last_name: input.lead.lastName || null,
+      job_title: input.lead.jobTitle || null,
+      person_linkedin_url: input.lead.personLinkedinUrl || null,
+      email_confidence: input.lead.emailConfidence || null,
     })
     .select('id')
     .single()

@@ -7,6 +7,14 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body: ProspectorRequest = await request.json()
 
+    // Validate searchMode
+    if (body.searchMode && !['company', 'person'].includes(body.searchMode)) {
+      return NextResponse.json(
+        { success: false, runId: '', error: 'searchMode must be "company" or "person"' },
+        { status: 400 }
+      )
+    }
+
     // Build agent configuration
     const config: AgentConfig = {
       industries: body.industries || [
@@ -21,6 +29,10 @@ export async function POST(request: NextRequest) {
       sources: body.sources || ['all'],
       minScore: body.minScore || 40,
       dryRun: body.dryRun || false,
+      // Person mode params
+      searchMode: body.searchMode || 'company',
+      targetTitles: body.targetTitles,
+      maxPeoplePerCompany: body.maxPeoplePerCompany,
     }
 
     console.log('[ProspectorAPI] Starting prospection with config:', config)

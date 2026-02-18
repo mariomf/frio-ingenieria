@@ -7,6 +7,9 @@ import { Json } from './database'
 export type LeadCategory = 'HOT' | 'WARM' | 'COLD' | 'DISCARD'
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
 export type ConsentStatus = 'pending' | 'granted' | 'denied' | 'unsubscribed'
+export type SearchMode = 'company' | 'person'
+export type LeadType = 'company' | 'person'
+export type EmailConfidence = 'verified' | 'guessed' | 'pattern' | 'unknown'
 
 export interface LeadScoreBreakdown {
   demographic: {
@@ -50,6 +53,14 @@ export interface ExtendedLead {
   location: string | null
   website: string | null
   enrichment_data: Json | null
+  // Person mode fields
+  lead_type: LeadType
+  first_name: string | null
+  last_name: string | null
+  job_title: string | null
+  person_linkedin_url: string | null
+  email_confidence: EmailConfidence | null
+  parent_company_id: string | null
   created_at: string
   updated_at: string
 }
@@ -83,6 +94,10 @@ export interface AgentConfig {
   sources?: string[]
   minScore?: number
   dryRun?: boolean
+  // Person mode
+  searchMode?: SearchMode
+  targetTitles?: string[]
+  maxPeoplePerCompany?: number
 }
 
 export interface AgentResults {
@@ -247,6 +262,13 @@ export interface RawLeadData {
   // LinkedIn enrichment data
   linkedinCompanyUrl?: string
   linkedinContacts?: LinkedInProfile[]
+  // Person mode fields
+  leadType?: LeadType
+  firstName?: string
+  lastName?: string
+  jobTitle?: string
+  personLinkedinUrl?: string
+  emailConfidence?: EmailConfidence
 }
 
 export interface QualifyLeadInput {
@@ -310,6 +332,10 @@ export interface ProspectorRequest {
   sources?: string[]
   minScore?: number
   dryRun?: boolean
+  // Person mode
+  searchMode?: SearchMode
+  targetTitles?: string[]
+  maxPeoplePerCompany?: number
 }
 
 export interface ProspectorResponse {

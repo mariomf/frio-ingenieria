@@ -11,6 +11,7 @@ import {
   LeadCategory,
   LeadScoreBreakdown,
   QualifyLeadOutput,
+  SearchMode,
 } from '@/types/agents'
 import { qualifyLead as qualifyLeadDeterministic } from '../tools/qualify-lead'
 
@@ -80,6 +81,72 @@ Responde en este formato JSON exacto:
     "engagement": {
       "purchaseHistory": <0-15>,
       "previousInteractions": <0-15>
+    }
+  },
+  "recommendations": ["<acción sugerida 1>", "<acción sugerida 2>"]
+}`
+}
+
+// System prompt for person lead qualification
+const QUALIFY_PERSON_SYSTEM_PROMPT = `Eres un experto en calificación de contactos (personas) como leads para Frío Ingeniería, una empresa mexicana que vende refacciones de equipos de refrigeración industrial (compresores, evaporadores, condensadores) de marcas como FRICK, MYCOM, Danfoss, y Parker.
+
+Tu trabajo es calificar a una PERSONA específica como lead, basándote en su puesto, empresa, y accesibilidad.
+
+PUESTOS OBJETIVO (máxima prioridad - 25pts):
+- Gerente/Jefe de Mantenimiento (decision-maker directo)
+- Ingeniero de Planta (influenciador técnico)
+
+PUESTOS RELEVANTES (20pts):
+- Gerente de Compras/Procurement (controla presupuesto)
+- Director de Planta/Operaciones
+
+PUESTOS ACEPTABLES (15pts):
+- Supervisor de Mantenimiento
+- C-Level (CEO, COO, Director General) - tienen poder pero no cercanía al problema
+
+EMAIL VERIFICADO vale 15 puntos adicionales. Email inferido vale 5-10 puntos.
+
+INDUSTRIAS OBJETIVO, UBICACIONES y SEÑALES DE COMPRA son los mismos que para empresas.
+
+Responde SIEMPRE en formato JSON exacto.`
+
+// User prompt template for person lead
+function createQualifyPersonPrompt(lead: RawLeadData): string {
+  return `Califica al siguiente CONTACTO como lead para Frío Ingeniería:
+
+DATOS DE LA PERSONA:
+- Nombre: ${lead.firstName || ''} ${lead.lastName || ''}
+- Puesto: ${lead.jobTitle || 'No disponible'}
+- Email: ${lead.email || 'No disponible'}
+- Confianza del email: ${lead.emailConfidence || 'unknown'}
+- LinkedIn: ${lead.personLinkedinUrl || 'No disponible'}
+
+DATOS DE SU EMPRESA:
+- Empresa: ${lead.company || 'No disponible'}
+- Industria: ${lead.industry || 'No especificada'}
+- Ubicación: ${lead.location || 'No especificada'}
+- Tamaño: ${lead.companySize || 'No especificado'}
+- Website: ${lead.website || 'No disponible'}
+
+Responde en este formato JSON exacto:
+{
+  "score": <número 0-100>,
+  "category": "<HOT|WARM|COLD|DISCARD>",
+  "reasoning": "<explicación breve de por qué este score>",
+  "scoreBreakdown": {
+    "demographic": {
+      "industry": <0-10>,
+      "companySize": <0-5>,
+      "location": <0-10>,
+      "jobTitle": <0-25>
+    },
+    "intent": {
+      "equipmentBrands": <0-20>,
+      "refaccionesNeed": <0-10>
+    },
+    "engagement": {
+      "purchaseHistory": <0-15>,
+      "previousInteractions": <0-5>
     }
   },
   "recommendations": ["<acción sugerida 1>", "<acción sugerida 2>"]
@@ -181,11 +248,15 @@ function parseJSONResponse<T>(text: string): T {
  * Qualify a single lead using LLM
  * Falls back to deterministic if LLM is not configured or fails
  */
-export async function qualifyLeadLLM(lead: RawLeadData): Promise<QualifyLeadOutput & { reasoning?: string; recommendations?: string[] }> {
+export async function qualifyLeadLLM(lead: RawLeadData, searchMode?: SearchMode): Promise<QualifyLeadOutput & { reasoning?: string; recommendations?: string[] }> {
   if (!isLLMConfigured()) {
     console.log('[qualify-llm] LLM not configured, using deterministic fallback')
-    return qualifyLeadDeterministic({ lead })
+    return qualifyLeadDeterministic({ lead }, searchMode)
   }
+
+  const isPerson = searchMode === 'person' || lead.leadType === 'person'
+  const systemPrompt = isPerson ? QUALIFY_PERSON_SYSTEM_PROMPT : QUALIFY_SYSTEM_PROMPT
+  const userPrompt = isPerson ? createQualifyPersonPrompt(lead) : createQualifyPrompt(lead)
 
   const result = await callClaude<{
     score: number
@@ -194,8 +265,8 @@ export async function qualifyLeadLLM(lead: RawLeadData): Promise<QualifyLeadOutp
     scoreBreakdown: LeadScoreBreakdown
     recommendations: string[]
   }>(
-    QUALIFY_SYSTEM_PROMPT,
-    createQualifyPrompt(lead),
+    systemPrompt,
+    userPrompt,
     parseJSONResponse
   )
 

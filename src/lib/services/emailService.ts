@@ -280,7 +280,7 @@ export async function sendHotLeadNotification(lead: HotLeadData): Promise<SendEm
       text: generateHotLeadEmailText(lead),
       tags: [
         { name: 'category', value: 'hot-lead' },
-        { name: 'source', value: lead.source },
+        { name: 'source', value: lead.source.replace(/[^a-zA-Z0-9_-]/g, '_') },
       ],
     })
 
