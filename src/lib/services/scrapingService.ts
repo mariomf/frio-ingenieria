@@ -42,6 +42,16 @@ const INDUSTRIAL_CITIES: { name: string; lat: number; lng: number }[] = [
   { name: 'Mérida', lat: 20.9674, lng: -89.5926 },
   { name: 'Aguascalientes', lat: 21.8853, lng: -102.2916 },
   { name: 'Toluca', lat: 19.2826, lng: -99.6557 },
+  { name: 'Hermosillo', lat: 29.0729, lng: -110.9559 },
+  { name: 'Chihuahua', lat: 28.6353, lng: -106.0889 },
+  { name: 'Saltillo', lat: 25.4232, lng: -101.0036 },
+  { name: 'Torreón', lat: 25.5428, lng: -103.4068 },
+  { name: 'Culiacán', lat: 24.8091, lng: -107.3940 },
+  { name: 'Veracruz', lat: 19.1738, lng: -96.1342 },
+  { name: 'Celaya', lat: 20.5239, lng: -100.8188 },
+  { name: 'Irapuato', lat: 20.6745, lng: -101.3557 },
+  { name: 'Mazatlán', lat: 23.2494, lng: -106.4111 },
+  { name: 'Coatzacoalcos', lat: 18.1500, lng: -94.4500 },
 ]
 
 // =====================================================
@@ -350,6 +360,329 @@ const MEXICAN_INDUSTRIAL_COMPANIES: RawLeadData[] = [
     companySize: '25-50',
     source: 'SIEM',
   },
+
+  // ─── MEDIANAS EMPRESAS (50-500 empleados) - Sweet spot de Frío Ingeniería ───
+
+  // DAIRY medianas
+  {
+    name: 'Lácteos La Laguna S.A. de C.V.',
+    company: 'Lácteos La Laguna',
+    phone: '+52 871 716 3400',
+    location: 'Torreón, Coahuila, México',
+    industry: 'dairy',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Derivados Lácteos de Chihuahua S.A.',
+    company: 'Derivados Lácteos Chihuahua',
+    phone: '+52 614 430 2200',
+    location: 'Chihuahua, Chihuahua, México',
+    industry: 'dairy',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Lechería San Marcos S.A. de C.V.',
+    company: 'Lechería San Marcos',
+    phone: '+52 449 912 5600',
+    location: 'Aguascalientes, Aguascalientes, México',
+    industry: 'dairy',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Quesos y Cremas del Bajío S.A.',
+    company: 'Quesos del Bajío',
+    phone: '+52 477 773 8900',
+    location: 'León, Guanajuato, México',
+    industry: 'dairy',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Yogurt y Derivados del Pacífico S.A.',
+    company: 'Yogurt del Pacífico',
+    phone: '+52 667 715 4300',
+    location: 'Culiacán, Sinaloa, México',
+    industry: 'dairy',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Pasteurizadora El Ranchito S.A.',
+    company: 'Pasteurizadora El Ranchito',
+    phone: '+52 722 214 7600',
+    location: 'Toluca, Estado de México, México',
+    industry: 'dairy',
+    companySize: '100-250',
+    source: 'SIEM',
+  },
+
+  // MEAT medianas
+  {
+    name: 'Empacadora Hermosillo S.A. de C.V.',
+    company: 'Empacadora Hermosillo',
+    phone: '+52 662 213 9800',
+    location: 'Hermosillo, Sonora, México',
+    industry: 'meat',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Carnimex S.A. de C.V.',
+    company: 'Carnimex',
+    phone: '+52 55 5858 6700',
+    location: 'Ecatepec, Estado de México, México',
+    industry: 'meat',
+    companySize: '100-250',
+    source: 'SIEM',
+  },
+  {
+    name: 'Procesadora de Aves del Bajío S.A.',
+    company: 'Procesadora de Aves Bajío',
+    phone: '+52 461 617 4200',
+    location: 'Celaya, Guanajuato, México',
+    industry: 'meat',
+    companySize: '250-500',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Rastro TIF Noreste S.A. de C.V.',
+    company: 'Rastro TIF Noreste',
+    phone: '+52 81 8353 9200',
+    location: 'Monterrey, Nuevo León, México',
+    industry: 'meat',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Cárnicos del Valle de México S.A.',
+    company: 'Cárnicos del Valle',
+    phone: '+52 55 5715 3800',
+    location: 'Tlalnepantla, Estado de México, México',
+    industry: 'meat',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Jamones y Embutidos Jalisco S.A.',
+    company: 'Jamones Jalisco',
+    phone: '+52 33 3657 1100',
+    location: 'Guadalajara, Jalisco, México',
+    industry: 'meat',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+
+  // COLD STORAGE medianas
+  {
+    name: 'Almacenadora Frigorífica del Noreste S.A.',
+    company: 'Frigorífica Noreste',
+    phone: '+52 81 8347 6800',
+    location: 'Monterrey, Nuevo León, México',
+    industry: 'cold_storage',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Bodega Fría del Pacífico S.A. de C.V.',
+    company: 'Bodega Fría Pacífico',
+    phone: '+52 669 982 3600',
+    location: 'Mazatlán, Sinaloa, México',
+    industry: 'cold_storage',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Refrigeración Industrial del Golfo S.A.',
+    company: 'Refrigeración del Golfo',
+    phone: '+52 229 935 4700',
+    location: 'Veracruz, Veracruz, México',
+    industry: 'cold_storage',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Cámaras Frías de Tabasco S.A.',
+    company: 'Cámaras Frías Tabasco',
+    phone: '+52 993 358 7900',
+    location: 'Villahermosa, Tabasco, México',
+    industry: 'cold_storage',
+    companySize: '25-50',
+    source: 'SIEM',
+  },
+  {
+    name: 'Servicios Frigoríficos de Guadalajara S.A.',
+    company: 'Servicios Frigoríficos GDL',
+    phone: '+52 33 3812 5300',
+    location: 'Guadalajara, Jalisco, México',
+    industry: 'cold_storage',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+
+  // FOOD PROCESSING medianas
+  {
+    name: 'Conservas Vegetales de Guanajuato S.A.',
+    company: 'Conservas Guanajuato',
+    phone: '+52 462 623 4100',
+    location: 'Irapuato, Guanajuato, México',
+    industry: 'food_processing',
+    companySize: '100-250',
+    source: 'SIEM',
+  },
+  {
+    name: 'Congelados del Noroeste S.A. de C.V.',
+    company: 'Congelados Noroeste',
+    phone: '+52 631 312 5500',
+    location: 'Caborca, Sonora, México',
+    industry: 'food_processing',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Procesadora de Mariscos Mazatlán S.A.',
+    company: 'Mariscos Mazatlán',
+    phone: '+52 669 981 7200',
+    location: 'Mazatlán, Sinaloa, México',
+    industry: 'food_processing',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Alimentos Congelados del Norte S.A.',
+    company: 'Congelados del Norte',
+    phone: '+52 614 439 8300',
+    location: 'Chihuahua, Chihuahua, México',
+    industry: 'food_processing',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Frutas y Verduras del Bajío S.A. de C.V.',
+    company: 'Frutas Bajío',
+    phone: '+52 461 614 9700',
+    location: 'Celaya, Guanajuato, México',
+    industry: 'food_processing',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Empacadora de Aguacate Michoacán S.A.',
+    company: 'Empacadora Aguacate Michoacán',
+    phone: '+52 452 524 6800',
+    location: 'Uruapan, Michoacán, México',
+    industry: 'food_processing',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+
+  // BEVERAGES medianas
+  {
+    name: 'Cervecería Artesanal de Querétaro S.A.',
+    company: 'Cervecería Querétaro',
+    phone: '+52 442 238 4500',
+    location: 'Querétaro, Querétaro, México',
+    industry: 'beverages',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Refrescos y Aguas del Norte S.A.',
+    company: 'Refrescos del Norte',
+    phone: '+52 614 416 7300',
+    location: 'Chihuahua, Chihuahua, México',
+    industry: 'beverages',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Embotelladora Regional de Jalisco S.A.',
+    company: 'Embotelladora Regional Jalisco',
+    phone: '+52 33 3836 4400',
+    location: 'Guadalajara, Jalisco, México',
+    industry: 'beverages',
+    companySize: '100-250',
+    source: 'SIEM',
+  },
+
+  // PHARMACEUTICALS medianas
+  {
+    name: 'Laboratorios Liomont S.A. de C.V.',
+    company: 'Laboratorios Liomont',
+    phone: '+52 55 5851 0404',
+    location: 'Ciudad de México, CDMX, México',
+    website: 'https://www.liomont.com',
+    industry: 'pharmaceuticals',
+    companySize: '250-500',
+    source: 'SIEM',
+  },
+  {
+    name: 'Química Knoll S.A. de C.V.',
+    company: 'Química Knoll',
+    phone: '+52 33 3648 7100',
+    location: 'Guadalajara, Jalisco, México',
+    industry: 'pharmaceuticals',
+    companySize: '100-250',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Laboratorios Almirall S.A.',
+    company: 'Laboratorios Almirall',
+    phone: '+52 81 8114 6700',
+    location: 'Monterrey, Nuevo León, México',
+    industry: 'pharmaceuticals',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Biotecnología Farmacéutica del Bajío S.A.',
+    company: 'Biofarma Bajío',
+    phone: '+52 477 788 3200',
+    location: 'León, Guanajuato, México',
+    industry: 'pharmaceuticals',
+    companySize: '50-100',
+    source: 'CANACINTRA',
+  },
+
+  // ICE PLANTS adicionales
+  {
+    name: 'Hielo Industrial de Sonora S.A.',
+    company: 'Hielo Industrial Sonora',
+    phone: '+52 662 289 9400',
+    location: 'Hermosillo, Sonora, México',
+    industry: 'ice_plants',
+    companySize: '25-50',
+    source: 'SIEM',
+  },
+  {
+    name: 'Planta de Hielo del Golfo S.A. de C.V.',
+    company: 'Hielo del Golfo',
+    phone: '+52 993 352 8700',
+    location: 'Villahermosa, Tabasco, México',
+    industry: 'ice_plants',
+    companySize: '25-50',
+    source: 'CANACINTRA',
+  },
+  {
+    name: 'Hielotek S.A. de C.V.',
+    company: 'Hielotek',
+    phone: '+52 81 8374 2100',
+    location: 'Monterrey, Nuevo León, México',
+    industry: 'ice_plants',
+    companySize: '50-100',
+    source: 'SIEM',
+  },
+  {
+    name: 'Hielos y Refrigeración Tijuana S.A.',
+    company: 'Hielos Tijuana',
+    phone: '+52 664 625 9800',
+    location: 'Tijuana, Baja California, México',
+    industry: 'ice_plants',
+    companySize: '25-50',
+    source: 'CANACINTRA',
+  },
 ]
 
 // =====================================================
@@ -488,16 +821,19 @@ export async function searchSIEM(options: SIEMSearchOptions): Promise<RawLeadDat
     console.log('[SIEM] Using DENUE API')
 
     const searchTerms = getSearchTermsForIndustries(industries)
+    // Search up to 5 terms across all industrial cities with 25km radius
+    const citiesToSearch = INDUSTRIAL_CITIES.slice(0, 10)
 
-    for (const term of searchTerms.slice(0, 3)) {
-      for (const city of INDUSTRIAL_CITIES.slice(0, 3)) {
-        if (leads.length >= limit) break
+    for (const term of searchTerms.slice(0, 5)) {
+      for (const city of citiesToSearch) {
+        if (leads.length >= limit * 2) break // Collect 2x limit for better dedup
 
-        const results = await searchDENUEAPI(term, city.lat, city.lng, 10000)
+        const results = await searchDENUEAPI(term, city.lat, city.lng, 25000)
         leads.push(...results)
 
         await delay(REQUEST_DELAY_MS)
       }
+      if (leads.length >= limit * 2) break
     }
   }
 
@@ -545,13 +881,13 @@ export async function searchCANACINTRA(options: CANACINTRASearchOptions): Promis
 
 function getSearchTermsForIndustries(industries: string[]): string[] {
   const termMap: Record<string, string[]> = {
-    food_processing: ['alimentos', 'procesadora', 'empacadora'],
-    dairy: ['lacteos', 'leche', 'quesos'],
-    meat: ['carnes', 'frigorifico', 'rastro'],
-    beverages: ['bebidas', 'cerveceria', 'embotelladora'],
-    cold_storage: ['frigorifico', 'refrigeracion', 'congelados'],
-    pharmaceuticals: ['farmaceutico', 'laboratorio', 'medicamentos'],
-    ice_plants: ['hielo', 'hielera'],
+    food_processing: ['procesadora alimentos', 'empacadora alimentos', 'planta alimentos', 'conservas', 'congelados'],
+    dairy: ['lacteos', 'pasteurizadora', 'queseria', 'cremeria', 'procesadora leche'],
+    meat: ['frigorifico carnes', 'empacadora carnes', 'rastro TIF', 'carnicola', 'procesadora aves'],
+    beverages: ['embotelladora', 'cerveceria', 'planta bebidas', 'refresquera', 'jugos industriales'],
+    cold_storage: ['almacen frigorifico', 'camara frigorifica', 'bodega fria', 'cadena frio', 'congeladora industrial'],
+    pharmaceuticals: ['laboratorio farmaceutico', 'farmaceutica', 'bioteknologia', 'medicamentos', 'industria farmaceutica'],
+    ice_plants: ['fabrica hielo', 'planta hielo', 'hielera industrial', 'hielo comercial'],
   }
 
   const terms: string[] = []

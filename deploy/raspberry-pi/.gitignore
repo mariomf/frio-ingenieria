@@ -1,0 +1,4 @@
+# Secretos y datos: nunca subir al repo
+.env
+data/
+backups/

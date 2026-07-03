@@ -1,0 +1,18 @@
+# Gateway que emula el enrutamiento de Supabase para @supabase/supabase-js.
+# El SDK llama a  {URL}/rest/v1/<tabla>  -> aqui se reescribe a PostgREST (raiz).
+:8000 {
+	# Salud simple
+	handle /health {
+		respond "ok" 200
+	}
+
+	# API REST estilo Supabase: /rest/v1/* -> PostgREST
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
+
+	# Raiz informativa
+	handle {
+		respond "Frio Ingenieria DB gateway" 200
+	}
+}

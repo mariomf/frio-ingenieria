@@ -11,71 +11,81 @@ import { RawLeadData } from '@/types/agents'
 const INDUSTRY_SEARCH_TERMS: Record<string, string[]> = {
   food_processing: [
     'procesadora de alimentos',
-    'planta de alimentos',
-    'food processing plant',
     'empacadora de alimentos',
+    'planta de alimentos congelados',
+    'conservas industriales',
+    'empacadora de frutas y verduras',
   ],
   cold_storage: [
-    'almacén frigorífico',
-    'cuarto frío',
-    'cold storage',
-    'cadena de frío',
-    'almacenamiento refrigerado',
+    'almacén frigorífico industrial',
+    'cuarto frío industrial',
+    'bodega refrigerada',
+    'almacenamiento en frío',
+    'cadena de frío logística',
   ],
   dairy: [
-    'productos lácteos',
-    'procesadora de leche',
-    'dairy plant',
-    'quesería',
-    'pasteurizadora',
+    'procesadora de lácteos',
+    'pasteurizadora de leche',
+    'quesería industrial',
+    'cremería industrial',
+    'planta láctea',
   ],
   meat: [
-    'frigorífico de carnes',
-    'procesadora de cárnicos',
-    'rastro',
     'empacadora de carnes',
-    'meat processing',
+    'rastro TIF',
+    'frigorífico de cárnicos',
+    'procesadora de aves',
+    'empacadora de embutidos',
   ],
   beverages: [
-    'cervecería',
-    'embotelladora',
-    'planta de bebidas',
-    'brewery',
-    'beverage plant',
+    'embotelladora de refrescos',
+    'cervecería industrial',
+    'planta embotelladora',
+    'jugos industriales',
+    'refresquera',
   ],
   pharmaceuticals: [
     'laboratorio farmacéutico',
-    'pharmaceutical laboratory',
-    'farmacéutica',
-    'laboratorio de medicamentos',
+    'industria farmacéutica',
+    'laboratorio biológico',
+    'manufactura farmacéutica',
+    'biotecnología farmacéutica',
   ],
   ice_plants: [
-    'fábrica de hielo',
+    'fábrica de hielo industrial',
     'planta de hielo',
-    'ice plant',
     'hielera industrial',
+    'hielo en bloque industrial',
+    'producción de hielo',
   ],
   supermarkets: [
-    'supermercado',
     'cadena de supermercados',
-    'autoservicio',
-    'supermarket chain',
+    'autoservicio regional',
+    'distribuidora de alimentos',
   ],
 }
 
 // City coordinates for regional searches
 const REGION_LOCATIONS: Record<string, { lat: number; lng: number; radius: number }[]> = {
   mexico: [
-    { lat: 19.4326, lng: -99.1332, radius: 50000 }, // CDMX
-    { lat: 25.6866, lng: -100.3161, radius: 50000 }, // Monterrey
-    { lat: 20.6597, lng: -103.3496, radius: 50000 }, // Guadalajara
-    { lat: 21.1619, lng: -86.8515, radius: 30000 }, // Cancún
-    { lat: 20.9674, lng: -89.5926, radius: 30000 }, // Mérida
-    { lat: 19.1738, lng: -96.1342, radius: 30000 }, // Veracruz
-    { lat: 32.5027, lng: -117.0037, radius: 30000 }, // Tijuana
-    { lat: 25.5428, lng: -103.4068, radius: 30000 }, // Torreón
-    { lat: 21.0190, lng: -101.2574, radius: 30000 }, // León
+    { lat: 19.4326, lng: -99.1332, radius: 40000 }, // CDMX
+    { lat: 25.6866, lng: -100.3161, radius: 40000 }, // Monterrey
+    { lat: 20.6597, lng: -103.3496, radius: 40000 }, // Guadalajara
     { lat: 20.5881, lng: -100.3899, radius: 30000 }, // Querétaro
+    { lat: 21.0190, lng: -101.2574, radius: 30000 }, // León
+    { lat: 25.5428, lng: -103.4068, radius: 30000 }, // Torreón
+    { lat: 29.0729, lng: -110.9559, radius: 30000 }, // Hermosillo
+    { lat: 28.6353, lng: -106.0889, radius: 30000 }, // Chihuahua
+    { lat: 19.0414, lng: -98.2063, radius: 30000 }, // Puebla
+    { lat: 19.2826, lng: -99.6557, radius: 30000 }, // Toluca
+    { lat: 32.5149, lng: -117.0382, radius: 25000 }, // Tijuana
+    { lat: 20.9674, lng: -89.5926, radius: 25000 }, // Mérida
+    { lat: 19.1738, lng: -96.1342, radius: 25000 }, // Veracruz
+    { lat: 24.8091, lng: -107.3940, radius: 25000 }, // Culiacán
+    { lat: 25.4232, lng: -101.0036, radius: 25000 }, // Saltillo
+    { lat: 21.8853, lng: -102.2916, radius: 25000 }, // Aguascalientes
+    { lat: 20.5239, lng: -100.8188, radius: 20000 }, // Celaya
+    { lat: 20.6745, lng: -101.3557, radius: 20000 }, // Irapuato
   ],
   central_america: [
     { lat: 14.6349, lng: -90.5069, radius: 40000 }, // Guatemala City
@@ -275,7 +285,7 @@ export async function searchGoogleMapsLeads(
 
   for (const industry of industries.length > 0 ? industries : Object.keys(INDUSTRY_SEARCH_TERMS)) {
     const terms = INDUSTRY_SEARCH_TERMS[industry] || []
-    for (const term of terms.slice(0, 2)) { // Limit to 2 terms per industry to reduce API calls
+    for (const term of terms.slice(0, 3)) { // Up to 3 terms per industry
       searchTerms.push({ term, industry })
     }
   }
@@ -284,7 +294,7 @@ export async function searchGoogleMapsLeads(
   const locations: { lat: number; lng: number; radius: number }[] = []
   for (const region of regions) {
     const regionLocs = REGION_LOCATIONS[region] || []
-    locations.push(...regionLocs.slice(0, 3)) // Limit to 3 cities per region
+    locations.push(...regionLocs) // Use all cities in the region
   }
 
   // If no specific locations, search without location bias
@@ -292,15 +302,15 @@ export async function searchGoogleMapsLeads(
     locations.push({ lat: 19.4326, lng: -99.1332, radius: 50000 }) // Default to CDMX
   }
 
-  // Search for each combination (limited to avoid excessive API calls)
-  const maxSearches = Math.min(searchTerms.length * locations.length, 10)
+  // maxSearches is now dynamic based on how many leads we need
+  const maxSearches = Math.min(searchTerms.length * locations.length, Math.ceil(limit * 1.5))
   let searchCount = 0
 
   for (const { term, industry } of searchTerms) {
-    if (searchCount >= maxSearches || leads.length >= limit) break
+    if (leads.length >= limit) break
 
     for (const location of locations) {
-      if (searchCount >= maxSearches || leads.length >= limit) break
+      if (leads.length >= limit) break
 
       const results = await textSearch(term, location, location.radius)
       searchCount++

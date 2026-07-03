@@ -1,0 +1,56 @@
+# Stack ligero compatible con supabase-js para Raspberry Pi 4.
+# Componentes: PostgreSQL + PostgREST + Caddy (gateway /rest/v1) + Cloudflare Tunnel.
+# No incluye realtime/storage/auth/analytics (la app no los usa) -> menos RAM.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: frio-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Sin puertos publicados: solo accesible en la red interna de Docker + LAN via caddy.
+
+  rest:
+    image: postgrest/postgrest:v12.2.3
+    container_name: frio-rest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD}@db:5432/${POSTGRES_DB:-postgres}
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: frio-caddy
+    restart: unless-stopped
+    depends_on:
+      - rest
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
+    ports:
+      # Expuesto solo a la LAN para pruebas; internet entra por cloudflared.
+      - "8000:8000"
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: frio-tunnel
+    restart: unless-stopped
+    depends_on:
+      - caddy
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    # Configura en el panel de Cloudflare: hostname -> http://caddy:8000
