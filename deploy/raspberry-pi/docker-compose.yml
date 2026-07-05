@@ -1,6 +1,10 @@
 # Stack ligero compatible con supabase-js para Raspberry Pi 4.
-# Componentes: PostgreSQL + PostgREST + Caddy (gateway /rest/v1) + Cloudflare Tunnel.
+# Componentes: PostgreSQL + PostgREST + Caddy (gateway /rest/v1, TLS automático via
+# Let's Encrypt). Acceso publico via port-forwarding + DDNS en el router OpenWrt
+# (sin Cloudflare Tunnel).
 # No incluye realtime/storage/auth/analytics (la app no los usa) -> menos RAM.
+# Nota: si el HDD externo esta montado en otra ruta (ej. /mnt/hdd), ajusta los
+# volumenes ./data/pg y ./data/caddy para que apunten ahi.
 services:
   db:
     image: postgres:16-alpine
@@ -43,14 +47,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data/caddy:/data
     ports:
-      # Expuesto solo a la LAN para pruebas; internet entra por cloudflared.
-      - "8000:8000"
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: frio-tunnel
-    restart: unless-stopped
-    depends_on:
-      - caddy
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    # Configura en el panel de Cloudflare: hostname -> http://caddy:8000
+      # Expuesto directo a internet vía port-forwarding en el router OpenWrt
+      # (y en el router del ISP si hay doble NAT). 80 es necesario para el
+      # challenge ACME HTTP-01 que emite el certificado TLS automáticamente.
+      - "443:443"
+      - "80:80"

@@ -1,6 +1,11 @@
 # Gateway que emula el enrutamiento de Supabase para @supabase/supabase-js.
 # El SDK llama a  {URL}/rest/v1/<tabla>  -> aqui se reescribe a PostgREST (raiz).
-:8000 {
+#
+# Reemplaza "friolab.duckdns.org" por tu hostname DDNS real (el mismo
+# configurado en el router OpenWrt con ddns-scripts). Caddy emite y renueva el
+# certificado TLS automaticamente (Let's Encrypt, challenge HTTP-01), por lo
+# que el puerto 80 debe estar reenviado desde tu router hacia esta maquina.
+friolab.duckdns.org {
 	# Salud simple
 	handle /health {
 		respond "ok" 200
