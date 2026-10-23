@@ -1,96 +1,87 @@
-# Base de datos self-host en Raspberry Pi 4
+# Base de datos self-hosted en Raspberry Pi 4
 
-Stack ligero **compatible con `@supabase/supabase-js`** para mover la base de datos
-de Supabase Cloud a una Raspberry Pi, **gratis** y **sin pausas por inactividad**.
+Este directorio contiene un stack mínimo compatible con el uso de `@supabase/supabase-js` para PostgreSQL: PostgreSQL 16, PostgREST y Caddy como gateway TLS. No incluye Auth, Storage, Realtime ni Analytics de Supabase.
 
-**Componentes:** PostgreSQL · PostgREST (API REST que consume el SDK) · Caddy (gateway `/rest/v1`, TLS automático) · DDNS + port-forwarding en router OpenWrt (acceso público sin depender de un túnel de terceros).
+> Esta opción expone una API de base de datos a Internet. Requiere administrar seguridad, respaldos, actualizaciones, disponibilidad y recuperación ante fallos. No la expongas hasta revisar permisos y RLS.
 
-No se incluyen realtime/storage/auth/analytics porque la app no los usa → menos RAM.
+## Componentes del directorio
 
-## Requisitos en el laboratorio (RPi + HDD externo + router OpenWrt)
-- Raspberry Pi OS Lite 64-bit.
-- **Disco:** HDD mecánico externo en vez de microSD (evita corrupción por desgaste de escrituras del SO).
-  - Usa una **carcasa/enclosure con alimentación propia** (no bus-powered): un RPi4 no siempre puede alimentar de forma estable un HDD 3.5"/2.5" solo por USB.
-  - Formatea en **ext4** y monta por **UUID** en `/etc/fstab` (evita depender de `/dev/sdX`, que puede cambiar de nombre).
-  - Desactiva el spin-down/APM del disco: `sudo hdparm -B 254 -S 0 /dev/sdX` (evita latencia de arranque del disco que dispare el healthcheck de Postgres).
-  - Monta con `noatime` para reducir escrituras innecesarias.
-  - Ajusta las rutas de `./data/pg`, `./data/caddy` y `BACKUP_DIR` en `docker-compose.yml`/`.env` para que apunten al punto de montaje del HDD (ej. `/mnt/hdd`).
-- Docker + Docker Compose (`curl -fsSL https://get.docker.com | sh`).
-- **UPS/no-break**: aún más importante que con SSD, ya que un corte de luz durante una escritura mecánica en HDD tiene más riesgo de daño/corrupción.
-- **Router OpenWrt** para DDNS + port-forwarding (ver sección siguiente). Si tu OpenWrt está detrás del router de tu ISP (doble NAT), necesitas configurar el reenvío de puertos en **ambos** dispositivos, o poner el router del ISP en modo bridge/DMZ hacia la IP del OpenWrt.
-- ⚠️ **Antes de continuar**, verifica que tu ISP no use **CGNAT** (IP pública compartida entre varios clientes): compara la IP que reporta el router del ISP con la que ves en un servicio externo (ej. `curl ifconfig.me` desde dentro de tu red vs el estado WAN del router). Si hay CGNAT, el port-forwarding no funcionará y tocaría usar un túnel saliente (ej. Cloudflare Tunnel) en su lugar.
+- `docker-compose.yml`: PostgreSQL, PostgREST y Caddy.
+- `Caddyfile`: proxy TLS hacia PostgREST.
+- `.env.template`: variables del stack; crea un `.env` local.
+- `scripts/gen-keys.mjs`: genera las claves de API a partir del secreto JWT.
+- `scripts/load-schema.sh`: crea roles, aplica esquema/migraciones y asigna permisos.
+- `scripts/backup.sh`: genera respaldo de PostgreSQL.
 
-## Puesta en marcha
+## Requisitos
+
+- Raspberry Pi OS Lite de 64 bits, Docker y Docker Compose.
+- Dominio/DDNS con acceso desde Internet, IP pública y reenvío de puertos 80/443 al Pi. CGNAT impide el port-forwarding tradicional.
+- Almacenamiento confiable; para HDD externo usa alimentación propia, sistema de archivos ext4 y montaje persistente. Se recomienda UPS.
+
+## Instalación inicial
+
+Desde la raíz del repositorio, en la Raspberry Pi:
 
 ```bash
-# 1) En la Pi, clona el repo y entra a la carpeta
 cd deploy/raspberry-pi
 cp .env.template .env
-
-# 2) Genera secretos
-openssl rand -hex 24   # -> POSTGRES_PASSWORD
-openssl rand -hex 24   # -> AUTHENTICATOR_PASSWORD
-openssl rand -hex 32   # -> JWT_SECRET
-# Edita .env con esos valores
-
-# 3) Genera las API keys a partir del JWT_SECRET
-node scripts/gen-keys.mjs "$(grep '^JWT_SECRET=' .env | cut -d= -f2-)"
-# Copia ANON_KEY y SERVICE_ROLE_KEY al .env
-
-# 4) Configura DDNS + port-forwarding
-#    a) En el router OpenWrt: instala ddns-scripts + luci-app-ddns, configura tu
-#       proveedor DDNS gratuito (DuckDNS/No-IP/etc.) y anota el hostname resultante.
-#    b) Reserva DHCP estática para la IP LAN de la Raspberry Pi en OpenWrt.
-#    c) Firewall > Port Forwards en OpenWrt: WAN:443 -> RPi:443, WAN:80 -> RPi:80.
-#    d) Si tienes doble NAT, repite el reenvío de 443/80 en el router del ISP
-#       hacia la IP LAN del router OpenWrt (o usa modo bridge/DMZ si lo soporta).
-#    e) Edita el Caddyfile y reemplaza "TU-SUBDOMINIO.duckdns.org" por tu
-#       hostname DDNS real. Guarda ese mismo valor en DDNS_HOSTNAME dentro de .env.
-
-# 5) Levanta el stack
-docker compose up -d
-
-# 6) Carga el esquema y permisos
-bash scripts/load-schema.sh
-
-# 7) Prueba local
-curl -s -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
-  http://localhost:8000/rest/v1/brands?select=name
-
-# 8) Prueba pública (una vez que el DNS/DDNS y el forwarding estén activos)
-curl -s -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
-  https://TU-SUBDOMINIO.duckdns.org/rest/v1/brands?select=name
 ```
 
-## Conectar la app (Vercel)
-En las variables de entorno de Vercel:
+Genera valores distintos y aleatorios para `POSTGRES_PASSWORD`, `AUTHENTICATOR_PASSWORD` y `JWT_SECRET`; no reutilices ejemplos ni subas `.env`. Por ejemplo:
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://TU-SUBDOMINIO.duckdns.org
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY>
-SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY>
-```
-
-Redeploy y verifica `/refacciones`, `/dashboard/leads` y `/test-db`.
-**No hay cambios de código**: el SDK sigue funcionando contra PostgREST.
-
-## Backups
 ```bash
-# Prueba manual
-bash scripts/backup.sh
-# Programar diario (crontab -e)
-0 3 * * * /ruta/al/repo/deploy/raspberry-pi/scripts/backup.sh
+openssl rand -hex 24
+openssl rand -hex 24
+openssl rand -hex 32
 ```
-Restaurar: `gunzip -c backups/frio_XXXX.sql.gz | docker exec -i frio-db psql -U postgres -d postgres`
 
-## Auto-arranque al bootear
-Docker ya reinicia los contenedores (`restart: unless-stopped`). Asegura que el
-servicio de Docker esté habilitado: `sudo systemctl enable docker`.
+Edita `.env` y `Caddyfile` para usar el hostname DDNS real. Asegura que `DDNS_HOSTNAME` y el hostname configurado en Caddy coincidan. Si el disco de datos no está en la ruta prevista, actualiza los volúmenes de `docker-compose.yml` y la ruta de backups.
 
-## Notas de resiliencia
-- **HDD externo** en vez de microSD evita corrupción por escrituras del SO, pero es más lento que un SSD y más sensible a golpes/vibración: colócalo fijo y evita moverlo con el equipo encendido.
-- **UPS** + apagado seguro es crítico, más aún con HDD mecánico (riesgo de daño físico/corrupción si se corta la luz a mitad de una escritura).
-- **DDNS en OpenWrt** actualiza el registro DNS automáticamente si tu IP pública cambia, pero **no te protege de CGNAT** ni reconecta un túnel — si tu ISP asigna una IP dinámica sin CGNAT esto es suficiente; sin IP pública real, no funcionará.
-- Si la Pi se cae, la web de Vercel sigue en línea; solo se degradan las páginas con BD.
-- Monitorea con UptimeRobot apuntando a `https://TU-SUBDOMINIO.duckdns.org/rest/v1/brands?select=name` (con header apikey).
-- **Seguridad adicional** al exponer puertos directamente a internet (sin la capa de Cloudflare): considera rate limiting en Caddy y revisa que las políticas RLS de las tablas expuestas al rol `anon` sean estrictas, ya que el endpoint es alcanzable por cualquiera en internet.
+Después:
+
+```bash
+docker compose up -d
+node scripts/gen-keys.mjs "$(grep '^JWT_SECRET=' .env | cut -d= -f2-)"
+```
+
+Copia las claves generadas a las variables correspondientes del `.env`, y configura también el secreto del authenticator y contraseña de PostgreSQL. Luego carga el esquema:
+
+```bash
+bash scripts/load-schema.sh
+```
+
+El script aplica el esquema base y todos los archivos de migración presentes en el repositorio. Úsalo únicamente como bootstrap de una base nueva: el SQL base contiene políticas/triggers que no son plenamente idempotentes, aunque el script incluya operaciones repetibles. No lo ejecutes sobre una base existente sin revisar qué objetos ya fueron aplicados y contar con un respaldo.
+
+## Configurar la aplicación
+
+En el entorno donde se ejecuta Next.js (por ejemplo, Vercel), configura:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://TU-HOSTNAME
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<clave anon generada>
+SUPABASE_SERVICE_ROLE_KEY=<clave service role generada>
+```
+
+La clave service role es secreta y solo debe usarse del lado servidor. El SDK puede conectarse a PostgREST por Caddy, pero las características ausentes del stack de Supabase no estarán disponibles.
+
+## Operación
+
+Comprueba contenedores con `docker compose ps` y consulta sus logs con `docker compose logs`. Para respaldar manualmente:
+
+```bash
+bash scripts/backup.sh
+```
+
+Configura una tarea de respaldo periódica fuera del contenedor y conserva copias fuera de la Raspberry Pi. Verifica también que una restauración funcione antes de depender de los respaldos. El stack define `restart: unless-stopped`; habilita el servicio Docker al inicio del sistema.
+
+## Seguridad y disponibilidad
+
+- No publiques puertos de PostgreSQL/PostgREST directamente; el Compose publica Caddy en 80/443.
+- Revisa RLS y los permisos de `anon` y `service_role`; el endpoint HTTPS es accesible públicamente.
+- Usa contraseñas y secretos fuertes, únicos y no versionados; actualízalos cuando exista exposición.
+- Configura firewall, actualizaciones, límites de tráfico y monitorización.
+- Usa DDNS con IP pública; DDNS no resuelve CGNAT. Con doble NAT configura el reenvío en ambos routers.
+- La Raspberry Pi es un punto único de fallo. Los respaldos, UPS y monitoreo no sustituyen redundancia.
+
+Para el esquema, orden de migraciones y limitaciones de la aplicación, consulta [`../../INTEGRATION_NOTES.md`](../../INTEGRATION_NOTES.md) y [`../../README.md`](../../README.md).

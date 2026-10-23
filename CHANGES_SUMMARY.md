@@ -1,137 +1,34 @@
-# Resumen de Cambios - Integración Supabase
+# Historial: integración inicial con Supabase
 
-## Fecha
-21 de enero de 2026
+> Nota histórica: este documento resume la integración registrada el 21 de enero de 2026. No es un changelog completo ni describe por sí solo el estado actual del proyecto. Para el estado vigente, consulta [`README.md`](README.md).
 
-## Objetivo
-Integrar el proyecto Next.js con Supabase para mostrar datos reales de las tablas `brands`, `equipment` y `parts` en lugar de datos estáticos.
+## Alcance de aquella integración
 
-## Archivos Creados
+Se incorporaron servicios para consultar marcas, equipos, refacciones y proyectos, y componentes de tarjetas para marcas, partes y proyectos. Las páginas de refacciones y proyectos se adaptaron para obtener datos desde Supabase y mostrar estados vacíos.
 
-### Servicios (7 archivos)
-1. `/src/lib/services/brandService.ts` - Servicio de marcas
-2. `/src/lib/services/equipmentService.ts` - Servicio de equipos
-3. `/src/lib/services/partService.ts` - Servicio de refacciones
-4. `/src/lib/services/projectService.ts` - Servicio de proyectos
-5. `/src/lib/services/index.ts` - Exportaciones centralizadas
+Los archivos principales que siguen formando parte de la implementación son:
 
-### Componentes (3 archivos)
-6. `/src/components/parts/BrandCard.tsx` - Tarjeta de marca
-7. `/src/components/parts/PartCard.tsx` - Tarjeta de refacción
-8. `/src/components/projects/ProjectCard.tsx` - Tarjeta de proyecto
+- `src/lib/services/brandService.ts`
+- `src/lib/services/equipmentService.ts`
+- `src/lib/services/partService.ts`
+- `src/lib/services/projectService.ts`
+- `src/components/parts/BrandCard.tsx`
+- `src/components/parts/PartCard.tsx`
+- `src/components/projects/ProjectCard.tsx`
+- `src/app/refacciones/page.tsx`
+- `src/app/proyectos/page.tsx`
 
-### Configuración (2 archivos)
-9. `.env.local` - Variables de entorno (creado, no en git)
-10. `INTEGRATION_NOTES.md` - Documentación completa
-11. `CHANGES_SUMMARY.md` - Este archivo
+## Esquema y configuración
 
-**Total: 11 archivos creados**
+El esquema base actual está en `supabase/schema.sql`; posteriormente se añadieron las migraciones `002_agent_tables.sql` y `003_add_person_fields.sql` para CRM/prospección. Las credenciales se configuran localmente en `.env.local`, creado a partir de `.env.example`, y no deben guardarse en Git.
 
-## Archivos Modificados
+Las afirmaciones de compilación y lint que aparecían en la versión original de esta nota corresponden a ese momento y no han sido verificadas como estado actual.
 
-1. `/src/app/refacciones/page.tsx` - Actualizada para usar datos reales
-2. `/src/app/proyectos/page.tsx` - Actualizada para usar datos reales
-3. `.gitignore` - Corregido para permitir .env.example en git
+## Mejoras que siguen relevantes
 
-**Total: 3 archivos modificados**
+- Conectar formularios y solicitudes de cotización con persistencia real.
+- Hacer funcionales búsqueda y filtros del catálogo.
+- Añadir páginas de detalle de proyectos/refacciones y un flujo de cotización.
+- Definir autenticación, permisos y pruebas automatizadas.
 
-## Características Implementadas
-
-### 1. Servicios de Datos
-- Funciones tipadas con TypeScript para todas las operaciones CRUD
-- Manejo de errores con logs y retorno de null
-- Filtros y búsquedas avanzadas
-- Queries optimizadas con JOINs donde es necesario
-
-### 2. Componentes Reutilizables
-- Componentes modulares y mantenibles
-- Props tipadas con TypeScript
-- Manejo de casos edge (sin datos, imágenes faltantes)
-- Responsive design con Tailwind CSS
-
-### 3. Páginas Dinámicas
-- Server Components para mejor performance
-- Fetch de datos en el servidor (SSR)
-- Manejo de estados vacíos
-- SEO-friendly con metadata
-
-## Estado del Proyecto
-
-✅ **Compilación:** Exitosa (npm run build)
-✅ **TypeScript:** Sin errores de tipo
-✅ **ESLint:** 3 advertencias menores sobre optimización de imágenes
-✅ **Variables de Entorno:** Configuradas correctamente
-
-## Próximos Pasos Sugeridos
-
-1. Optimizar imágenes usando Next.js `<Image />`
-2. Implementar ISR (Incremental Static Regeneration)
-3. Agregar páginas de detalle (`/proyectos/[slug]`)
-4. Implementar búsqueda interactiva
-5. Agregar filtros dinámicos con query params
-6. Implementar sistema de cotización
-
-## Comandos Útiles
-
-```bash
-# Desarrollo
-npm run dev
-
-# Compilar
-npm run build
-
-# Producción
-npm start
-
-# Lint
-npm run lint
-```
-
-## Notas Importantes
-
-- El archivo `.env.local` contiene las credenciales de Supabase y NO debe subirse a git
-- `.env.example` debe mantenerse actualizado como referencia
-- Todas las funciones de servicios incluyen manejo de errores
-- Los componentes son compatibles con React Server Components de Next.js 14
-
-## Testing Básico
-
-Para verificar que todo funciona correctamente:
-
-1. Ejecutar `npm run build` - Debe compilar sin errores
-2. Visitar `/test-db` - Debe mostrar conexión exitosa y marcas
-3. Visitar `/refacciones` - Debe mostrar marcas y refacciones reales
-4. Visitar `/proyectos` - Debe mostrar proyectos reales
-
-## Estructura de Carpetas Actualizada
-
-```
-src/
-├── app/
-│   ├── proyectos/
-│   │   └── page.tsx (modificado)
-│   ├── refacciones/
-│   │   └── page.tsx (modificado)
-│   └── ...
-├── components/
-│   ├── parts/
-│   │   ├── BrandCard.tsx (nuevo)
-│   │   └── PartCard.tsx (nuevo)
-│   ├── projects/
-│   │   └── ProjectCard.tsx (nuevo)
-│   └── ...
-└── lib/
-    ├── services/
-    │   ├── brandService.ts (nuevo)
-    │   ├── equipmentService.ts (nuevo)
-    │   ├── partService.ts (nuevo)
-    │   ├── projectService.ts (nuevo)
-    │   └── index.ts (nuevo)
-    ├── supabase.ts (existente)
-    └── ...
-```
-
----
-
-**Implementado por:** Claude Opus 4.5
-**Fecha:** 21 de enero de 2026
+La guía de integración vigente está en [`INTEGRATION_NOTES.md`](INTEGRATION_NOTES.md).
