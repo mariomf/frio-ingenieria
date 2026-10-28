@@ -298,6 +298,59 @@ export async function sendHotLeadNotification(lead: HotLeadData): Promise<SendEm
   }
 }
 
+export async function sendContactMessage(contact: {
+  name: string
+  company: string
+  email: string
+  phone: string
+  type: 'project' | 'parts' | 'service' | 'emergency' | 'other'
+  message: string
+}): Promise<SendEmailResult> {
+  const resend = getResendClient()
+
+  if (!resend) {
+    return { success: false, error: 'RESEND_API_KEY not configured' }
+  }
+
+  const requestTypes = {
+    project: 'Cotización de proyecto',
+    parts: 'Cotización de refacciones',
+    service: 'Servicio de mantenimiento',
+    emergency: 'Emergencia',
+    other: 'Otro',
+  } as const
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: getSenderEmail(),
+      to: COMPANY.email,
+      reply_to: contact.email,
+      subject: `Nuevo mensaje de contacto: ${requestTypes[contact.type]}`,
+      text: [
+        'Nuevo mensaje desde el formulario de contacto',
+        '',
+        `Nombre: ${contact.name}`,
+        `Empresa: ${contact.company}`,
+        `Email: ${contact.email}`,
+        `Teléfono: ${contact.phone}`,
+        `Tipo de solicitud: ${requestTypes[contact.type]}`,
+        '',
+        'Mensaje:',
+        contact.message || '(Sin mensaje adicional)',
+      ].join('\n'),
+      tags: [{ name: 'category', value: 'contact-form' }],
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, messageId: data?.id }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 /**
  * Send daily summary email with all new leads
  */

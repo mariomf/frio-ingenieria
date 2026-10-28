@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import ContactForm from '@/components/contact/ContactForm'
 import { COMPANY, WHATSAPP } from '@/lib/constants'
 import { generateWhatsAppLink } from '@/lib/utils'
 
@@ -55,112 +56,9 @@ export default function ContactoPage() {
               <h2 className="font-heading text-2xl font-bold mb-6 text-industrial-900">
                 Envíanos un mensaje
               </h2>
-              <form className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-industrial-700 mb-2">
-                      Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      required
-                      className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="company" className="block text-sm font-medium text-industrial-700 mb-2">
-                      Empresa *
-                    </label>
-                    <input
-                      type="text"
-                      id="company"
-                      name="company"
-                      required
-                      className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-industrial-700 mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      required
-                      className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="phone" className="block text-sm font-medium text-industrial-700 mb-2">
-                      Teléfono *
-                    </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      required
-                      className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-industrial-700 mb-2">
-                    Tipo de solicitud
-                  </label>
-                  <select
-                    id="type"
-                    name="type"
-                    className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="project">Cotización de proyecto</option>
-                    <option value="parts">Cotización de refacciones</option>
-                    <option value="service">Servicio de mantenimiento</option>
-                    <option value="emergency">Emergencia</option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-industrial-700 mb-2">
-                    Mensaje
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    rows={5}
-                    placeholder="Cuéntanos sobre tu proyecto o necesidad..."
-                    className="w-full px-4 py-3 border border-industrial-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button type="submit" size="lg" className="flex-1">
-                    Enviar Mensaje
-                  </Button>
-                  <a
-                    href={generateWhatsAppLink(WHATSAPP.phone, WHATSAPP.quoteMessage)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
-                  >
-                    <Button
-                      type="button"
-                      size="lg"
-                      variant="outline"
-                      className="w-full bg-green-500 text-white border-green-500 hover:bg-green-600"
-                    >
-                      WhatsApp Directo
-                    </Button>
-                  </a>
-                </div>
-              </form>
+              <ContactForm
+                whatsappHref={generateWhatsAppLink(WHATSAPP.phone, WHATSAPP.quoteMessage)}
+              />
             </div>
 
             {/* Contact Info */}
