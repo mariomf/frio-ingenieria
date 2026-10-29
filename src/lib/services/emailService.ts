@@ -323,7 +323,7 @@ export async function sendContactMessage(contact: {
   try {
     const { data, error } = await resend.emails.send({
       from: 'Frío Ingeniería <onboarding@resend.dev>',
-      to: COMPANY.email,
+      to: 'mario.mucino.flores@gmail.com',
       reply_to: contact.email,
       subject: `Nuevo mensaje de contacto: ${requestTypes[contact.type]}`,
       text: [
